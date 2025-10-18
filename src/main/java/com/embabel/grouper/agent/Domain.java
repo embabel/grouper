@@ -1,32 +1,56 @@
 package com.embabel.grouper.agent;
 
+import com.embabel.common.ai.model.LlmOptions;
 import com.embabel.common.ai.prompt.PromptContributor;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public abstract class Domain {
 
     /**
      * A message to be evaluated
      *
-     * @param id      id of the message, in case we have variants
-     * @param content content of this instance of the message
+     * @param id        id of the message, in case we have variants
+     * @param detail    detail of this instance of the message
+     * @param objective objective
      */
     public record Message(
             String id,
-            String content) {
+            String detail,
+            String objective) {
     }
 
     /**
-     * Map from id to Message
+     * Expression of a message
      *
-     * @param messaging
+     * @param message
+     * @param expression
      */
-    public record Positioning(Map<String, List<Message>> messaging) {
+    public record MessageExpression(
+            Message message,
+            String expression
+    ) {
+    }
+
+    public record MessageTest(
+            Message message,
+            List<MessageExpression> expressions
+    ) {
+
+        public MessageTest(Message message, String... expressions) {
+            this(message,
+                    Arrays.stream(expressions).map(e -> new MessageExpression(message, e)).toList());
+        }
+    }
+
+    /**
+     * Map from name to Message
+     * This allows us to test multiple variants of the same
+     * message name
+     *
+     */
+    public record Positioning(List<MessageTest> messageTests) {
     }
 
     public enum Gender {
@@ -40,15 +64,17 @@ public abstract class Domain {
 
         String name();
 
-        /***
-         * A participant may run on multiple models
-         */
-        String model();
+        LlmOptions llm();
     }
 
     public record FocusGroup(
-            List<Participant> participants,
-            Instant timestamp
+            List<Participant> participants
+    ) {
+    }
+
+    public record FocusGroupSubmission(
+            FocusGroup focusGroup,
+            Positioning positioning
     ) {
     }
 
@@ -67,11 +93,17 @@ public abstract class Domain {
     ) {
     }
 
+//    public record MessageSubmission(
+//            Message message,
+//            Participant participant
+//    ) {
+//    }
+
     /**
      * Reaction of one participant to a given message
      */
     public record SpecificReaction(
-            Message message,
+            MessageExpression message,
             Participant participant,
             Reaction reaction,
             Instant timestamp
@@ -87,30 +119,111 @@ public abstract class Domain {
     ) {
     }
 
+    /**
+     * Represents a combination of a participant and a message expression
+     */
+    public record ParticipantMessagePresentation(
+            Participant participant,
+            MessageExpression messageExpression
+    ) {
+    }
+
+    /**
+     * Matrix tracking completion status for all participant/message expression combinations
+     */
+    public record CompletionMatrix(
+            Map<ParticipantMessagePresentation, Boolean> completionStatus
+    ) {
+        public boolean isComplete() {
+            return completionStatus.values().stream().allMatch(Boolean::booleanValue);
+        }
+
+        public boolean hasReaction(Participant participant, MessageExpression messageExpression) {
+            return completionStatus.getOrDefault(
+                    new ParticipantMessagePresentation(participant, messageExpression),
+                    false
+            );
+        }
+
+        public List<ParticipantMessagePresentation> getAllCombinations() {
+            return List.copyOf(completionStatus.keySet());
+        }
+
+        public List<ParticipantMessagePresentation> getCompletedCombinations() {
+            return completionStatus.entrySet().stream()
+                    .filter(Map.Entry::getValue)
+                    .map(Map.Entry::getKey)
+                    .toList();
+        }
+
+        public List<ParticipantMessagePresentation> getIncompleteCombinations() {
+            return completionStatus.entrySet().stream()
+                    .filter(e -> !e.getValue())
+                    .map(Map.Entry::getKey)
+                    .toList();
+        }
+    }
+
+    /**
+     * Built up as we return results
+     */
     public static class FocusGroupRun {
 
         public final FocusGroup focusGroup;
 
+        public final Positioning positioning;
+
         private final Map<Participant, List<SpecificReaction>> reactionsByParticipant = new HashMap<>();
 
-        public FocusGroupRun(FocusGroup focusGroup) {
+        private final Map<ParticipantMessagePresentation, Boolean> matrixData = new HashMap<>();
+
+        public FocusGroupRun(
+                FocusGroup focusGroup,
+                Positioning positioning) {
             this.focusGroup = focusGroup;
+            this.positioning = positioning;
+
+            // Initialize matrix with all combinations set to false
+            var allMessageExpressions = positioning.messageTests().stream()
+                    .flatMap(mt -> mt.expressions().stream())
+                    .toList();
+
+            for (var participant : focusGroup.participants()) {
+                for (MessageExpression messageExpression : allMessageExpressions) {
+                    matrixData.put(new ParticipantMessagePresentation(participant, messageExpression), false);
+                }
+            }
+        }
+
+        public CompletionMatrix getCompletionMatrix() {
+            return new CompletionMatrix(Map.copyOf(matrixData));
+        }
+
+        public boolean isComplete() {
+            return getCompletionMatrix().isComplete();
         }
 
         public void record(SpecificReaction reaction) {
             reactionsByParticipant
                     .computeIfAbsent(reaction.participant(), k -> new LinkedList<>())
                     .add(reaction);
+
+            // Update matrix
+            ParticipantMessagePresentation key = new ParticipantMessagePresentation(
+                    reaction.participant(),
+                    reaction.message()
+            );
+            matrixData.put(key, true);
         }
 
         public List<SpecificReaction> getReactionsForParticipant(Participant participant) {
             return reactionsByParticipant.getOrDefault(participant, List.of());
         }
 
-        public MessageScore getAverageScoreForMessage(Message message) {
+        public MessageScore getAverageScoreForMessage(MessageExpression messageExpression) {
             var reactions = reactionsByParticipant.values().stream()
                     .flatMap(List::stream)
-                    .filter(r -> r.message().equals(message))
+                    .filter(r -> r.message().equals(messageExpression))
                     .toList();
 
             long count = reactions.size();
