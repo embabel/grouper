@@ -22,7 +22,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 
 @SpringBootApplication
-@EnableAgents(loggingTheme = LoggingThemes.STAR_WARS)
+@EnableAgents(loggingTheme = LoggingThemes.COLOSSUS)
 class GrouperApplication {
     public static void main(String[] args) {
         SpringApplication.run(GrouperApplication.class, args);

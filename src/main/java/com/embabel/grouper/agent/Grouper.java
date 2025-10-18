@@ -29,12 +29,13 @@ class Grouper {
             OperationContext operationContext
     ) {
         var combos = focusGroupRun.getCompletionMatrix().getAllCombinations();
-        operationContext.parallelMap(
+        var specificReactions = operationContext.parallelMap(
                 combos,
                 15,
                 participantMessagePresentation ->
                         testMessageExpressionWithParticipant(participantMessagePresentation, focusGroupRun, operationContext)
         );
+        specificReactions.forEach(focusGroupRun::record);
         return focusGroupRun;
     }
 
@@ -66,7 +67,6 @@ class Grouper {
     @Condition
     boolean done(Domain.FocusGroupRun focusGroupRun) {
         return focusGroupRun.isComplete();
-
     }
 
     @Action(pre = {"done"})

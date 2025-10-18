@@ -2,6 +2,10 @@ package com.embabel.grouper.agent;
 
 import com.embabel.common.ai.model.LlmOptions;
 import com.embabel.common.ai.prompt.PromptContributor;
+import com.embabel.common.core.types.HasInfoString;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 import java.util.*;
@@ -80,24 +84,22 @@ public abstract class Domain {
 
     /**
      *
-     * @param positive
-     * @param negative
+     * @param positives
+     * @param negatives
      * @param quotes
-     * @param score    Score from 0.0 (worst) to 1.0 (best)
+     * @param score     Score from 0.0 (worst) to 1.0 (best)
      */
     public record Reaction(
-            String positive,
-            String negative,
+            @JsonPropertyDescription("Things that resonate about the message")
+            String positives,
+            @JsonPropertyDescription("Things that backfire about the message")
+            String negatives,
+            @JsonProperty("Quotes saying how this message makes me feel")
             List<String> quotes,
+            @JsonPropertyDescription("Score from 0.0 (doesn't resonate at all) to 1.0 (love it)")
             double score
     ) {
     }
-
-//    public record MessageSubmission(
-//            Message message,
-//            Participant participant
-//    ) {
-//    }
 
     /**
      * Reaction of one participant to a given message
@@ -167,7 +169,7 @@ public abstract class Domain {
     /**
      * Built up as we return results
      */
-    public static class FocusGroupRun {
+    public static class FocusGroupRun implements HasInfoString {
 
         public final FocusGroup focusGroup;
 
@@ -242,6 +244,78 @@ public abstract class Domain {
                     .orElse(0.0);
         }
 
+        @NotNull
+        @Override
+        public String infoString(Boolean verbose, int indent) {
+            boolean isVerbose = verbose != null && verbose;
+            String indentStr = " ".repeat(indent);
+            StringBuilder sb = new StringBuilder();
+
+            sb.append(indentStr).append("Focus Group Results\n");
+            sb.append(indentStr).append("===================\n\n");
+
+            // Get all message expressions with their scores, sorted by average score (highest first)
+            var messageScores = positioning.messageTests().stream()
+                    .flatMap(mt -> mt.expressions().stream())
+                    .map(expr -> {
+                        MessageScore score = getAverageScoreForMessage(expr);
+                        return Map.entry(expr, score);
+                    })
+                    .sorted((e1, e2) -> Double.compare(e2.getValue().averageScore(), e1.getValue().averageScore()))
+                    .toList();
+
+            for (var entry : messageScores) {
+                MessageExpression expr = entry.getKey();
+                MessageScore score = entry.getValue();
+
+                sb.append(indentStr).append(String.format("Message: %s (ID: %s)\n", expr.message().detail(), expr.message().id()));
+                sb.append(indentStr).append(String.format("Objective: %s\n", expr.message().objective()));
+                sb.append(indentStr).append(String.format("Expression: %s\n", expr.expression()));
+                sb.append(indentStr).append(String.format("Average Score: %.2f (%.0f%%) - %d reactions\n",
+                        score.averageScore(),
+                        score.averageScore() * 100,
+                        score.count()));
+
+                if (isVerbose) {
+                    sb.append(indentStr).append("  Participant Reactions:\n");
+
+                    // Get all reactions for this message expression
+                    var reactions = reactionsByParticipant.entrySet().stream()
+                            .flatMap(e -> e.getValue().stream()
+                                    .filter(r -> r.message().equals(expr))
+                                    .map(r -> Map.entry(e.getKey(), r)))
+                            .toList();
+
+                    for (var reactionEntry : reactions) {
+                        Participant participant = reactionEntry.getKey();
+                        SpecificReaction reaction = reactionEntry.getValue();
+
+                        sb.append(indentStr).append(String.format("    %s: %.2f (%.0f%%)\n",
+                                participant.name(),
+                                reaction.reaction().score(),
+                                reaction.reaction().score() * 100));
+                        sb.append(indentStr).append(String.format("      Positives: %s\n", reaction.reaction().positives()));
+                        sb.append(indentStr).append(String.format("      Negatives: %s\n", reaction.reaction().negatives()));
+
+                        if (!reaction.reaction().quotes().isEmpty()) {
+                            sb.append(indentStr).append("      Quotes:\n");
+                            for (String quote : reaction.reaction().quotes()) {
+                                sb.append(indentStr).append(String.format("        - \"%s\"\n", quote));
+                            }
+                        }
+                    }
+                }
+
+                sb.append("\n");
+            }
+
+            return sb.toString();
+        }
+
+        @Override
+        public String toString() {
+            return infoString(false, 0);
+        }
 
     }
 
