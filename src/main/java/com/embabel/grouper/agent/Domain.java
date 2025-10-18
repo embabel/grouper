@@ -66,6 +66,12 @@ public abstract class Domain {
      */
     public interface Participant extends PromptContributor {
 
+        /**
+         * id must be unique. There can be multiple participants
+         * with the same name, but different models
+         */
+        String id();
+
         String name();
 
         LlmOptions llm();
@@ -263,6 +269,25 @@ public abstract class Domain {
                     })
                     .sorted((e1, e2) -> Double.compare(e2.getValue().averageScore(), e1.getValue().averageScore()))
                     .toList();
+
+            // Summary ranking
+            sb.append(indentStr).append("Message Ranking by Effectiveness:\n");
+            sb.append(indentStr).append("---------------------------------\n");
+            int rank = 1;
+            for (var entry : messageScores) {
+                MessageExpression expr = entry.getKey();
+                MessageScore score = entry.getValue();
+                sb.append(indentStr).append(String.format("%d. %.0f%% - %s (ID: %s)\n",
+                        rank++,
+                        score.averageScore() * 100,
+                        expr.expression().length() > 60 ? expr.expression().substring(0, 57) + "..." : expr.expression(),
+                        expr.message().id()));
+            }
+            sb.append("\n");
+
+            // Detailed results
+            sb.append(indentStr).append("Detailed Results:\n");
+            sb.append(indentStr).append("-----------------\n\n");
 
             for (var entry : messageScores) {
                 MessageExpression expr = entry.getKey();

@@ -1,6 +1,7 @@
 package com.embabel.grouper;
 
 import com.embabel.agent.api.common.autonomy.AgentInvocation;
+import com.embabel.agent.config.models.AnthropicModels;
 import com.embabel.agent.config.models.OpenAiModels;
 import com.embabel.agent.core.AgentPlatform;
 import com.embabel.agent.core.Verbosity;
@@ -19,43 +20,49 @@ record GrouperShell(AgentPlatform agentPlatform) {
     @ShellMethod("Run a focus group")
     String focus() {
         var participants = new LinkedList<Domain.Participant>();
-        var alice = new PromptedParticipant(
+        var llms = List.of(
+//                LlmOptions.withModel(OpenAiModels.GPT_5_NANO),
+                LlmOptions.withModel(OpenAiModels.GPT_41_NANO),
+                LlmOptions.withModel(OpenAiModels.GPT_41_NANO).withTemperature(.7),
+                LlmOptions.withModel(AnthropicModels.CLAUDE_HAIKU_4_5)
+        );
+        var alices = PromptedParticipant.against(
                 "Alice",
-                LlmOptions.withModel(OpenAiModels.GPT_41_MINI),
                 """
                         You are a 15 year old girl who lives in Richmond and loves Taylor Swift and tennis
-                        """
+                        """,
+                llms
         );
-        var ziff = new PromptedParticipant(
+        var ziffs = PromptedParticipant.against(
                 "Ziff",
-                LlmOptions.withModel(OpenAiModels.GPT_41_MINI),
                 """
                         You are a 17 year old non-binary AFAB who lives in Chertsey, hates sport and is passionate
                         about Gaza
-                        """
+                        """,
+                llms
         );
-        var tom = new PromptedParticipant(
+        var toms = PromptedParticipant.against(
                 "Tom",
-                LlmOptions.withModel(OpenAiModels.GPT_41_MINI),
                 """
                         You are a 16 year old boy who lives in Chertsey and wants to study
                         PPE at Cambridge. You are a member of the young conservatives.
                         You go to the gym every day and have run a mile in 4:30.
-                        """
+                        """,
+                llms
         );
-        var jerry = new PromptedParticipant(
+        var jerries = PromptedParticipant.against(
                 "Jerry",
-                LlmOptions.withModel(OpenAiModels.GPT_41_MINI),
                 """
                         15 year old boy who has severe asthma and allergies.
                         Lives with his single mother in Woking.
                         Hopes to become a doctor.
-                        """
+                        """,
+                llms
         );
-        participants.add(alice);
-        participants.add(ziff);
-        participants.add(tom);
-        participants.add(jerry);
+        participants.addAll(alices);
+        participants.addAll(ziffs);
+        participants.addAll(toms);
+        participants.addAll(jerries);
         var focusGroup = new Domain.FocusGroup(participants);
 
         var positioning = new Domain.Positioning(List.of(
@@ -69,7 +76,9 @@ record GrouperShell(AgentPlatform agentPlatform) {
                         "Smoking makes you slow",
                         "Smoking is for losers",
                         "Winners don't smoke",
-                        "Smoking is boring"
+                        "Smoking is boring",
+                        "Taylor Swift hates smoking",
+                        "Look at old people who smoke. They look really bad. If they were your age, they wouldn't start"
                 )
         ));
 
