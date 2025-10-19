@@ -11,7 +11,7 @@ public class InMemoryParticipantRepository implements ParticipantRepository {
 
     public List<Model.Participant> findAll() {
         var llms = List.of(
-                LlmOptions.withModel(OpenAiModels.GPT_41_NANO),
+//                LlmOptions.withModel(OpenAiModels.GPT_41_NANO),
                 LlmOptions.withModel(OpenAiModels.GPT_41_NANO).withTemperature(.7),
                 LlmOptions.withModel(AnthropicModels.CLAUDE_HAIKU_4_5)
         );

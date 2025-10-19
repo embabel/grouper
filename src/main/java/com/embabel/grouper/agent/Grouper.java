@@ -15,16 +15,26 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 @ConfigurationProperties(prefix = "grouper")
 record GrouperConfig(
-        int maxConcurrency
-) {
+        int maxConcurrency,
+        int maxIterations,
+        double minMessageScore
+) implements Predicate<FocusGroupRun> {
+
+    @Override
+    public boolean test(FocusGroupRun focusGroupRun) {
+        return focusGroupRun.isComplete() && focusGroupRun.getBestPerformingMessageVariant().averageScore() > minMessageScore;
+    }
+
 }
 
 @Agent(description = "Simulate a focus group")
 record Grouper(
-        GrouperConfig config
+        GrouperConfig config,
+        Predicate<FocusGroupRun> fitnessFunction
 ) {
 
     private static final Logger logger = LoggerFactory.getLogger(Grouper.class);
@@ -93,8 +103,8 @@ record Grouper(
     }
 
     @Condition(name = DONE_CONDITION)
-    boolean done(FocusGroupRun focusGroupRun) {
-        return focusGroupRun.isComplete();
+    boolean done(FocusGroupRun focusGroupRun, OperationContext context) {
+        return context.count(FocusGroupRun.class) > config.maxIterations() || fitnessFunction.test(focusGroupRun);
     }
 
     @Action(pre = {DONE_CONDITION})

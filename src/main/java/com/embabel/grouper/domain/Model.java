@@ -125,7 +125,8 @@ public abstract class Model {
     /**
      * Average score for a message variant, with count of reactions
      */
-    public record MessageScore(
+    public record MessageVariantScore(
+            MessageVariant messageVariant,
             double averageScore,
             long count
     ) {

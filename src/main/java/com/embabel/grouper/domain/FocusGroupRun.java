@@ -49,7 +49,20 @@ public class FocusGroupRun implements HasInfoString {
                 .toList();
     }
 
-    public Model.MessageScore getAverageScoreForMessageVariant(Model.MessageVariant messageVariant) {
+    public Model.MessageVariantScore getBestPerformingMessageVariant() {
+        if (specificReactions.isEmpty()) {
+            return null;
+        }
+
+        return positioning.messageVariants().stream()
+                .flatMap(mv -> mv.expressions().stream())
+                .map(this::getAverageScoreForMessageVariant)
+                .filter(score -> score.count() > 0) // Only consider variants with reactions
+                .max((s1, s2) -> Double.compare(s1.averageScore(), s2.averageScore()))
+                .orElse(null);
+    }
+
+    public Model.MessageVariantScore getAverageScoreForMessageVariant(Model.MessageVariant messageVariant) {
         var reactions = specificReactions.stream()
                 .filter(r -> r.participantMessagePresentation().messageVariant().equals(messageVariant))
                 .toList();
@@ -60,7 +73,7 @@ public class FocusGroupRun implements HasInfoString {
                 .average()
                 .orElse(0.0);
 
-        return new Model.MessageScore(average, count);
+        return new Model.MessageVariantScore(messageVariant, average, count);
     }
 
     public double getAverageScoreForParticipant(Model.Participant participant) {
@@ -85,7 +98,7 @@ public class FocusGroupRun implements HasInfoString {
         var messageScores = positioning.messageVariants().stream()
                 .flatMap(mt -> mt.expressions().stream())
                 .map(expr -> {
-                    Model.MessageScore score = getAverageScoreForMessageVariant(expr);
+                    Model.MessageVariantScore score = getAverageScoreForMessageVariant(expr);
                     return Map.entry(expr, score);
                 })
                 .sorted((e1, e2) -> Double.compare(e2.getValue().averageScore(), e1.getValue().averageScore()))
@@ -97,7 +110,7 @@ public class FocusGroupRun implements HasInfoString {
         int rank = 1;
         for (var entry : messageScores) {
             Model.MessageVariant expr = entry.getKey();
-            Model.MessageScore score = entry.getValue();
+            Model.MessageVariantScore score = entry.getValue();
             sb.append(indentStr).append(String.format("%d. %.0f%% - %s (ID: %s)\n",
                     rank++,
                     score.averageScore() * 100,
@@ -112,7 +125,7 @@ public class FocusGroupRun implements HasInfoString {
 
         for (var entry : messageScores) {
             Model.MessageVariant expr = entry.getKey();
-            Model.MessageScore score = entry.getValue();
+            Model.MessageVariantScore score = entry.getValue();
 
             sb.append(indentStr).append(String.format("Message: %s (ID: %s)\n", expr.message().content(), expr.message().id()));
             sb.append(indentStr).append(String.format("Objective: %s\n", expr.message().objective()));

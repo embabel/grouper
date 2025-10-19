@@ -31,7 +31,7 @@ class ModelTest {
 
         @Override
         public String id() {
-            return name + "-" + llm.getModel().provider();
+            return name + "-" + llm.getModel();
         }
 
         @Override
@@ -132,9 +132,9 @@ class ModelTest {
 
         focusGroupRun.record(reaction);
 
-        Model.MessageScore messageScore = focusGroupRun.getAverageScoreForMessageVariant(messageVariant1);
-        assertEquals(8.5, messageScore.averageScore(), 0.001);
-        assertEquals(1, messageScore.count());
+        Model.MessageVariantScore messageVariantScore = focusGroupRun.getAverageScoreForMessageVariant(messageVariant1);
+        assertEquals(8.5, messageVariantScore.averageScore(), 0.001);
+        assertEquals(1, messageVariantScore.count());
     }
 
     @Test
@@ -154,16 +154,16 @@ class ModelTest {
         focusGroupRun.record(reaction1);
         focusGroupRun.record(reaction2);
 
-        Model.MessageScore messageScore = focusGroupRun.getAverageScoreForMessageVariant(messageVariant1);
-        assertEquals(8.0, messageScore.averageScore(), 0.001);
-        assertEquals(2, messageScore.count());
+        Model.MessageVariantScore messageVariantScore = focusGroupRun.getAverageScoreForMessageVariant(messageVariant1);
+        assertEquals(8.0, messageVariantScore.averageScore(), 0.001);
+        assertEquals(2, messageVariantScore.count());
     }
 
     @Test
     void testGetAverageScoreForMessage_NoReactions() {
-        Model.MessageScore messageScore = focusGroupRun.getAverageScoreForMessageVariant(messageVariant1);
-        assertEquals(0.0, messageScore.averageScore(), 0.001);
-        assertEquals(0, messageScore.count());
+        Model.MessageVariantScore messageVariantScore = focusGroupRun.getAverageScoreForMessageVariant(messageVariant1);
+        assertEquals(0.0, messageVariantScore.averageScore(), 0.001);
+        assertEquals(0, messageVariantScore.count());
     }
 
     @Test
@@ -183,8 +183,8 @@ class ModelTest {
         focusGroupRun.record(reaction1);
         focusGroupRun.record(reaction2);
 
-        Model.MessageScore score1 = focusGroupRun.getAverageScoreForMessageVariant(messageVariant1);
-        Model.MessageScore score2 = focusGroupRun.getAverageScoreForMessageVariant(messageVariant2);
+        Model.MessageVariantScore score1 = focusGroupRun.getAverageScoreForMessageVariant(messageVariant1);
+        Model.MessageVariantScore score2 = focusGroupRun.getAverageScoreForMessageVariant(messageVariant2);
 
         assertEquals(7.0, score1.averageScore(), 0.001);
         assertEquals(1, score1.count());
@@ -366,5 +366,80 @@ class ModelTest {
 
         // Now complete
         assertTrue(run.isComplete());
+    }
+
+    @Test
+    void testGetBestPerformingMessageVariant_NoReactions() {
+        Model.MessageVariantScore best = focusGroupRun.getBestPerformingMessageVariant();
+        assertNull(best);
+    }
+
+    @Test
+    void testGetBestPerformingMessageVariant_SingleVariant() {
+        Model.SpecificReaction reaction = new Model.SpecificReaction(
+                new Model.ParticipantMessagePresentation(participant1, messageVariant1),
+                new Model.Reaction("Good", "Bad", List.of(), 0.75),
+                Instant.now()
+        );
+        focusGroupRun.record(reaction);
+
+        Model.MessageVariantScore best = focusGroupRun.getBestPerformingMessageVariant();
+        assertNotNull(best);
+        assertEquals(messageVariant1, best.messageVariant());
+        assertEquals(0.75, best.averageScore(), 0.001);
+    }
+
+    @Test
+    void testGetBestPerformingMessageVariant_MultipleVariants() {
+        // messageVariant1 gets lower scores
+        focusGroupRun.record(new Model.SpecificReaction(
+                new Model.ParticipantMessagePresentation(participant1, messageVariant1),
+                new Model.Reaction("Okay", "Meh", List.of(), 0.60),
+                Instant.now()
+        ));
+        focusGroupRun.record(new Model.SpecificReaction(
+                new Model.ParticipantMessagePresentation(participant2, messageVariant1),
+                new Model.Reaction("Not great", "Could be better", List.of(), 0.55),
+                Instant.now()
+        ));
+
+        // messageVariant2 gets higher scores
+        focusGroupRun.record(new Model.SpecificReaction(
+                new Model.ParticipantMessagePresentation(participant1, messageVariant2),
+                new Model.Reaction("Great", "None", List.of(), 0.90),
+                Instant.now()
+        ));
+        focusGroupRun.record(new Model.SpecificReaction(
+                new Model.ParticipantMessagePresentation(participant2, messageVariant2),
+                new Model.Reaction("Excellent", "Minimal", List.of(), 0.85),
+                Instant.now()
+        ));
+
+        Model.MessageVariantScore best = focusGroupRun.getBestPerformingMessageVariant();
+        assertNotNull(best);
+        assertEquals(messageVariant2, best.messageVariant());
+        assertEquals(0.875, best.averageScore(), 0.001); // (0.90 + 0.85) / 2
+        assertEquals(2, best.count());
+    }
+
+    @Test
+    void testGetBestPerformingMessageVariant_TieScores() {
+        // Both variants get the same score - should return first one encountered
+        focusGroupRun.record(new Model.SpecificReaction(
+                new Model.ParticipantMessagePresentation(participant1, messageVariant1),
+                new Model.Reaction("Good", "Bad", List.of(), 0.70),
+                Instant.now()
+        ));
+        focusGroupRun.record(new Model.SpecificReaction(
+                new Model.ParticipantMessagePresentation(participant1, messageVariant2),
+                new Model.Reaction("Good", "Bad", List.of(), 0.70),
+                Instant.now()
+        ));
+
+        Model.MessageVariantScore best = focusGroupRun.getBestPerformingMessageVariant();
+        assertNotNull(best);
+        assertEquals(0.70, best.averageScore(), 0.001);
+        // Either variant is acceptable since they tie
+        assertTrue(best.messageVariant().equals(messageVariant1) || best.messageVariant().equals(messageVariant2));
     }
 }
