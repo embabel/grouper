@@ -1,4 +1,4 @@
-package com.embabel.grouper.agent;
+package com.embabel.grouper.domain;
 
 import com.embabel.common.ai.model.LlmOptions;
 import org.jetbrains.annotations.NotNull;
@@ -12,8 +12,8 @@ public record PromptedParticipant(
         String name,
         LlmOptions llm,
         String identity
-) implements Domain.Participant {
-    
+) implements Model.Participant {
+
     @Override
     public String id() {
         return name + "-" + llm;

@@ -7,6 +7,7 @@ import com.embabel.agent.api.annotation.Condition;
 import com.embabel.agent.api.common.OperationContext;
 import com.embabel.agent.event.ProgressUpdateEvent;
 import com.embabel.common.util.StringTrimmingUtilsKt;
+import com.embabel.grouper.domain.Model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -27,33 +28,26 @@ record Grouper(
     private static final Logger logger = LoggerFactory.getLogger(Grouper.class);
 
     @Action
-    Domain.FocusGroupRun createFocusGroupRun(
-            Domain.FocusGroup focusGroup,
-            Domain.Positioning positioning
-    ) {
-        return new Domain.FocusGroupRun(focusGroup, positioning);
-    }
-
-    @Action(post = {"done"})
-    Domain.FocusGroupRun testMessages(
-            Domain.FocusGroupRun focusGroupRun,
+    Model.FocusGroupRun testMessages(
+            Model.FocusGroup focusGroup,
+            Model.Positioning positioning,
             OperationContext operationContext
     ) {
-        var combos = focusGroupRun.getCompletionMatrix().getAllCombinations();
-        logger.info("Will try {} combinations", combos.size());
+        var focusGroupRun = new Model.FocusGroupRun(focusGroup, positioning);
+        logger.info("Will try {} combinations", focusGroupRun.combinations.size());
 
         var specificReactions = new java.util.concurrent.atomic.AtomicInteger(0);
         var results = operationContext.parallelMap(
-                combos,
+                focusGroupRun.combinations,
                 config.maxConcurrency(),
                 participantMessagePresentation -> {
-                    var sp = testMessageExpressionWithParticipant(
+                    var sp = presentMessageExpressionToParticipants(
                             participantMessagePresentation,
                             operationContext);
                     var count = specificReactions.incrementAndGet();
                     operationContext.getProcessContext().onProcessEvent(
                             new ProgressUpdateEvent(operationContext.getAgentProcess(),
-                                    "focus", count, combos.size())
+                                    "focus", count, focusGroupRun.combinations.size())
                     );
                     return sp;
                 }
@@ -62,16 +56,16 @@ record Grouper(
         return focusGroupRun;
     }
 
-    Domain.SpecificReaction testMessageExpressionWithParticipant(
-            Domain.ParticipantMessagePresentation messagePresentation,
+    Model.SpecificReaction presentMessageExpressionToParticipants(
+            Model.ParticipantMessagePresentation messagePresentation,
             OperationContext operationContext) {
         var reaction = operationContext.ai()
                 .withLlm(messagePresentation.participant().llm())
                 .withPromptContributor(messagePresentation.participant())
                 .withId(StringTrimmingUtilsKt.trim(
-                        messagePresentation.messageExpression().expression(), 25, 3, "..."
+                        messagePresentation.messageVariant().wording(), 80, 5, "..."
                 ) + "_" + messagePresentation.participant().name())
-                .creating(Domain.Reaction.class)
+                .creating(Model.Reaction.class)
                 .fromPrompt("""
                         You are a member of a focus group.
                         Your replies are confidential and you don't need to worry about
@@ -85,24 +79,23 @@ record Grouper(
                         
                         Assess in terms of whether it would produce the following objective in your mind:
                         <objective>%s</objective>
-                        """.formatted(messagePresentation.messageExpression().expression(), messagePresentation.messageExpression().message().objective()));
+                        """.formatted(messagePresentation.messageVariant().wording(), messagePresentation.messageVariant().message().objective()));
         logger.info("Reaction of {} was {}", messagePresentation.participant(), reaction);
-        return new Domain.SpecificReaction(
-                messagePresentation.messageExpression(),
-                messagePresentation.participant(),
+        return new Model.SpecificReaction(
+                messagePresentation,
                 reaction,
                 Instant.now()
         );
     }
 
     @Condition
-    boolean done(Domain.FocusGroupRun focusGroupRun) {
+    boolean done(Model.FocusGroupRun focusGroupRun) {
         return focusGroupRun.isComplete();
     }
 
-    @Action(pre = {"done"})
+    @Action
     @AchievesGoal(description = "Focus group has considered positioning")
-    Domain.FocusGroupRun results(Domain.FocusGroupRun focusGroupRun) {
+    Model.FocusGroupRun results(Model.FocusGroupRun focusGroupRun) {
         return focusGroupRun;
     }
 
