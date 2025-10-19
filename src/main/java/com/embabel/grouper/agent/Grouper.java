@@ -7,12 +7,14 @@ import com.embabel.agent.api.annotation.Condition;
 import com.embabel.agent.api.common.OperationContext;
 import com.embabel.agent.event.ProgressUpdateEvent;
 import com.embabel.common.util.StringTrimmingUtilsKt;
+import com.embabel.grouper.domain.FocusGroupRun;
 import com.embabel.grouper.domain.Model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Instant;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @ConfigurationProperties(prefix = "grouper")
 record GrouperConfig(
@@ -27,26 +29,28 @@ record Grouper(
 
     private static final Logger logger = LoggerFactory.getLogger(Grouper.class);
 
-    @Action
-    Model.FocusGroupRun testMessages(
+    private static final String DONE_CONDITION = "results_acceptable";
+
+    @Action(post = {DONE_CONDITION})
+    FocusGroupRun testPositioning(
             Model.FocusGroup focusGroup,
             Model.Positioning positioning,
-            OperationContext operationContext
+            OperationContext context
     ) {
-        var focusGroupRun = new Model.FocusGroupRun(focusGroup, positioning);
+        var focusGroupRun = new FocusGroupRun(focusGroup, positioning);
         logger.info("Will try {} combinations", focusGroupRun.combinations.size());
 
-        var specificReactions = new java.util.concurrent.atomic.AtomicInteger(0);
-        var results = operationContext.parallelMap(
+        var specificReactions = new AtomicInteger(0);
+        var results = context.parallelMap(
                 focusGroupRun.combinations,
                 config.maxConcurrency(),
                 participantMessagePresentation -> {
-                    var sp = presentMessageExpressionToParticipants(
+                    var sp = presentMessageVariantToParticipants(
                             participantMessagePresentation,
-                            operationContext);
+                            context);
                     var count = specificReactions.incrementAndGet();
-                    operationContext.getProcessContext().onProcessEvent(
-                            new ProgressUpdateEvent(operationContext.getAgentProcess(),
+                    context.getProcessContext().onProcessEvent(
+                            new ProgressUpdateEvent(context.getAgentProcess(),
                                     "focus", count, focusGroupRun.combinations.size())
                     );
                     return sp;
@@ -56,10 +60,10 @@ record Grouper(
         return focusGroupRun;
     }
 
-    Model.SpecificReaction presentMessageExpressionToParticipants(
+    Model.SpecificReaction presentMessageVariantToParticipants(
             Model.ParticipantMessagePresentation messagePresentation,
-            OperationContext operationContext) {
-        var reaction = operationContext.ai()
+            OperationContext context) {
+        var reaction = context.ai()
                 .withLlm(messagePresentation.participant().llm())
                 .withPromptContributor(messagePresentation.participant())
                 .withId(StringTrimmingUtilsKt.trim(
@@ -88,14 +92,14 @@ record Grouper(
         );
     }
 
-    @Condition
-    boolean done(Model.FocusGroupRun focusGroupRun) {
+    @Condition(name = DONE_CONDITION)
+    boolean done(FocusGroupRun focusGroupRun) {
         return focusGroupRun.isComplete();
     }
 
-    @Action
+    @Action(pre = {DONE_CONDITION})
     @AchievesGoal(description = "Focus group has considered positioning")
-    Model.FocusGroupRun results(Model.FocusGroupRun focusGroupRun) {
+    FocusGroupRun results(FocusGroupRun focusGroupRun) {
         return focusGroupRun;
     }
 

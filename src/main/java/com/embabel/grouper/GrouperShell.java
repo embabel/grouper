@@ -3,6 +3,7 @@ package com.embabel.grouper;
 import com.embabel.agent.api.common.autonomy.AgentInvocation;
 import com.embabel.agent.core.AgentPlatform;
 import com.embabel.agent.core.Verbosity;
+import com.embabel.grouper.domain.FocusGroupRun;
 import com.embabel.grouper.domain.InMemoryParticipantRepository;
 import com.embabel.grouper.domain.Model;
 import org.springframework.shell.standard.ShellComponent;
@@ -37,7 +38,7 @@ record GrouperShell(AgentPlatform agentPlatform) {
 
         var focusGroupRun = AgentInvocation.builder(agentPlatform)
                 .options(o -> o.verbosity(new Verbosity(true, false, false, false)))
-                .build(Model.FocusGroupRun.class)
+                .build(FocusGroupRun.class)
                 .invoke(focusGroup, participants, positioning);
         return focusGroupRun.infoString(true, 5);
     }

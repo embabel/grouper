@@ -1,6 +1,7 @@
 package com.embabel.grouper.agent;
 
 import com.embabel.common.ai.model.LlmOptions;
+import com.embabel.grouper.domain.FocusGroupRun;
 import com.embabel.grouper.domain.Model;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ModelTest {
 
-    private Model.FocusGroupRun focusGroupRun;
+    private FocusGroupRun focusGroupRun;
     private Model.MessageVariant messageVariant1;
     private Model.MessageVariant messageVariant2;
     private TestParticipant participant1;
@@ -69,7 +70,7 @@ class ModelTest {
 
         Model.Positioning positioning = new Model.Positioning(List.of(messageVariants1, messageVariants2));
 
-        focusGroupRun = new Model.FocusGroupRun(focusGroup, positioning);
+        focusGroupRun = new FocusGroupRun(focusGroup, positioning);
     }
 
     @Test
@@ -131,7 +132,7 @@ class ModelTest {
 
         focusGroupRun.record(reaction);
 
-        Model.MessageScore messageScore = focusGroupRun.getAverageScoreForMessage(messageVariant1);
+        Model.MessageScore messageScore = focusGroupRun.getAverageScoreForMessageVariant(messageVariant1);
         assertEquals(8.5, messageScore.averageScore(), 0.001);
         assertEquals(1, messageScore.count());
     }
@@ -153,14 +154,14 @@ class ModelTest {
         focusGroupRun.record(reaction1);
         focusGroupRun.record(reaction2);
 
-        Model.MessageScore messageScore = focusGroupRun.getAverageScoreForMessage(messageVariant1);
+        Model.MessageScore messageScore = focusGroupRun.getAverageScoreForMessageVariant(messageVariant1);
         assertEquals(8.0, messageScore.averageScore(), 0.001);
         assertEquals(2, messageScore.count());
     }
 
     @Test
     void testGetAverageScoreForMessage_NoReactions() {
-        Model.MessageScore messageScore = focusGroupRun.getAverageScoreForMessage(messageVariant1);
+        Model.MessageScore messageScore = focusGroupRun.getAverageScoreForMessageVariant(messageVariant1);
         assertEquals(0.0, messageScore.averageScore(), 0.001);
         assertEquals(0, messageScore.count());
     }
@@ -182,8 +183,8 @@ class ModelTest {
         focusGroupRun.record(reaction1);
         focusGroupRun.record(reaction2);
 
-        Model.MessageScore score1 = focusGroupRun.getAverageScoreForMessage(messageVariant1);
-        Model.MessageScore score2 = focusGroupRun.getAverageScoreForMessage(messageVariant2);
+        Model.MessageScore score1 = focusGroupRun.getAverageScoreForMessageVariant(messageVariant1);
+        Model.MessageScore score2 = focusGroupRun.getAverageScoreForMessageVariant(messageVariant2);
 
         assertEquals(7.0, score1.averageScore(), 0.001);
         assertEquals(1, score1.count());
@@ -341,7 +342,7 @@ class ModelTest {
         Model.Positioning positioning = new Model.Positioning(List.of(messageVariants));
 
         Model.FocusGroup focusGroup = new Model.FocusGroup(List.of(participant1));
-        Model.FocusGroupRun run = new Model.FocusGroupRun(focusGroup, positioning);
+        FocusGroupRun run = new FocusGroupRun(focusGroup, positioning);
 
         // Initially incomplete
         assertFalse(run.isComplete());
