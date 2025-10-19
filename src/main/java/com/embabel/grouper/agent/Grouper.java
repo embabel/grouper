@@ -1,9 +1,7 @@
 package com.embabel.grouper.agent;
 
-import com.embabel.agent.api.annotation.AchievesGoal;
-import com.embabel.agent.api.annotation.Action;
-import com.embabel.agent.api.annotation.Agent;
-import com.embabel.agent.api.annotation.Condition;
+import com.embabel.agent.api.annotation.*;
+import com.embabel.agent.api.common.Ai;
 import com.embabel.agent.api.common.OperationContext;
 import com.embabel.agent.event.ProgressUpdateEvent;
 import com.embabel.common.util.StringTrimmingUtilsKt;
@@ -14,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
@@ -41,10 +40,16 @@ record Grouper(
 
     private static final String DONE_CONDITION = "results_acceptable";
 
-    @Action(post = {DONE_CONDITION})
+    @Condition
+    boolean positioningIsLastEntry(OperationContext context) {
+        return context.lastResult() instanceof Model.Positioning;
+    }
+
+    @Action(pre = {"positioningIsLastEntry"}, post = {DONE_CONDITION}, canRerun = true)
     FocusGroupRun testPositioning(
             Model.FocusGroup focusGroup,
-            Model.Positioning positioning,
+            // Last? Can we make this its own annotation
+            @RequireNameMatch("it") Model.Positioning positioning,
             OperationContext context
     ) {
         var focusGroupRun = new FocusGroupRun(focusGroup, positioning);
@@ -107,10 +112,47 @@ record Grouper(
         return context.count(FocusGroupRun.class) > config.maxIterations() || fitnessFunction.test(focusGroupRun);
     }
 
+    @Action(cost = 1.0, post = {DONE_CONDITION}, canRerun = true)
+    Model.Positioning evolvePositioning(
+            FocusGroupRun focusGroupRun,
+            Ai ai
+    ) {
+        logger.info("Evolving positioning based on FocusGroupRun {}", focusGroupRun);
+        // TODO Should handle > 1 message
+        var messageVariants = focusGroupRun.positioning.messageVariants().getFirst();
+        var newMessageWords = ai
+                .withLlmByRole("best")
+                .creating(NewMessageWordings.class)
+                .fromPrompt("""
+                        Given the following feedback,
+                        %s
+                        
+                        Create new message wordings we could try.
+                        Preserve good-scoring messages, remove poorer ones
+                        
+                        Old messages: %s
+                        """.formatted(
+                        focusGroupRun.infoString(true, 1),
+                        messageVariants.expressions())
+                );
+        var newMessageVariants = new Model.MessageVariants(
+                messageVariants.message(),
+                newMessageWords.wordings().toArray(new String[0])
+        );
+
+        return new Model.Positioning(List.of(newMessageVariants));
+    }
+
     @Action(pre = {DONE_CONDITION})
     @AchievesGoal(description = "Focus group has considered positioning")
     FocusGroupRun results(FocusGroupRun focusGroupRun) {
         return focusGroupRun;
     }
+
+}
+
+record NewMessageWordings(
+        List<String> wordings
+) {
 
 }

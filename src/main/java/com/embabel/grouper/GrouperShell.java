@@ -28,10 +28,10 @@ record GrouperShell(AgentPlatform agentPlatform) {
                         "Smoking will give you cancer",
                         "Boys won't want to kiss you if you stink of cigarette smoke",
                         "Smoking makes you slow",
-                        "Smoking is for losers",
-                        "Winners don't smoke",
-                        "Smoking is boring",
-                        "Taylor Swift hates smoking",
+//                        "Smoking is for losers",
+//                        "Winners don't smoke",
+//                        "Smoking is boring",
+//                        "Taylor Swift hates smoking",
                         "Look at old people who smoke. They look really bad. If they were your age, they wouldn't start"
                 )
         ));
