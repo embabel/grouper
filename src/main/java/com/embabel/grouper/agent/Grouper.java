@@ -135,7 +135,7 @@ record Grouper(
         logger.info("Evolving positioning based on FocusGroupRun {}", focusGroupRun);
         // TODO Should handle > 1 message
         var messageVariants = focusGroupRun.positioning.messageVariants().getFirst();
-        var newMessageWordings = config.creative()
+        var newMessageWordings = config.nextCreative()
                 .promptRunner(ai)
                 .withPromptContributor(messageVariants.message())
                 .creating(NewMessageWordings.class)
