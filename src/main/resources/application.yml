@@ -1,0 +1,24 @@
+embabel:
+  models:
+    llms:
+      best: gpt-4.1
+
+grouper:
+
+  creative:
+    persona:
+      role: Creative star at a global advertising agency
+      goal: To conceive memorable, impactful campaigns
+      backstory: >
+        You have experience across a range of industries
+        You have previously conceived hugely successful, bold, campaigns
+
+    llm:
+      role: best
+      temperature: .3
+
+
+  max-concurrency: 8
+  max-variants: 12
+  max-iterations: 9
+  min-message-score: 0.86

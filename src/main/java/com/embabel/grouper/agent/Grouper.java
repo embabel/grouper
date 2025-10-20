@@ -12,7 +12,6 @@ import com.embabel.grouper.domain.FocusGroupRun;
 import com.embabel.grouper.domain.Model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Instant;
 import java.util.Comparator;
@@ -20,20 +19,12 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
-@ConfigurationProperties(prefix = "grouper")
-record GrouperConfig(
-        int maxConcurrency,
-        int maxIterations,
-        double minMessageScore
-) implements Predicate<FocusGroupRun> {
-
-    @Override
-    public boolean test(FocusGroupRun focusGroupRun) {
-        return focusGroupRun.isComplete() && focusGroupRun.getBestPerformingMessageVariant().averageScore() > minMessageScore;
-    }
-
-}
-
+/**
+ * Agent to simulate a focus group
+ *
+ * @param config          config
+ * @param fitnessFunction fitness function determining when we are satisfied
+ */
 @Agent(description = "Simulate a focus group")
 record Grouper(
         GrouperConfig config,
@@ -43,6 +34,10 @@ record Grouper(
     private static final Logger logger = LoggerFactory.getLogger(Grouper.class);
 
     private static final String DONE_CONDITION = "results_acceptable";
+
+    Grouper {
+        logger.info("Config: {}", config);
+    }
 
     @Condition
     boolean positioningIsLastEntry(OperationContext context) {
@@ -124,8 +119,8 @@ record Grouper(
         logger.info("Evolving positioning based on FocusGroupRun {}", focusGroupRun);
         // TODO Should handle > 1 message
         var messageVariants = focusGroupRun.positioning.messageVariants().getFirst();
-        var newMessageWords = ai
-                .withLlmByRole("best")
+        var newMessageWords = config.creative()
+                .promptRunner(ai)
                 .creating(NewMessageWordings.class)
                 .fromPrompt("""
                         Given the following feedback,
@@ -135,9 +130,12 @@ record Grouper(
                         Preserve good-scoring messages, remove poorer ones
                         Be creative. Try to break through!
                         
-                        Old messages: %s
+                        Never use more than %d variants
+                        
+                        Old message wordings: %s
                         """.formatted(
                         focusGroupRun.infoString(true, 1),
+                        config.maxVariants(),
                         messageVariants.expressions())
                 );
         var newMessageVariants = new Model.MessageVariants(

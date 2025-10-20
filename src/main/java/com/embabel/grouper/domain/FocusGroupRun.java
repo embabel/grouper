@@ -104,22 +104,20 @@ public class FocusGroupRun implements HasInfoString {
                 .sorted((e1, e2) -> Double.compare(e2.getValue().averageScore(), e1.getValue().averageScore()))
                 .toList();
 
-        // Summary ranking
         sb.append(indentStr).append("Message Ranking by Effectiveness:\n");
         sb.append(indentStr).append("---------------------------------\n");
         int rank = 1;
         for (var entry : messageScores) {
             Model.MessageVariant expr = entry.getKey();
             Model.MessageVariantScore score = entry.getValue();
-            sb.append(indentStr).append(String.format("%d. %.0f%% - %s (ID: %s)\n",
+            sb.append(indentStr).append(String.format("%d. %.2f - %s (id: %s)\n",
                     rank++,
-                    score.averageScore() * 100,
+                    score.averageScore(),
                     expr.wording().length() > 60 ? expr.wording().substring(0, 57) + "..." : expr.wording(),
                     expr.message().id()));
         }
         sb.append("\n");
 
-        // Detailed results
         sb.append(indentStr).append("Detailed Results:\n");
         sb.append(indentStr).append("-----------------\n\n");
 
@@ -130,9 +128,8 @@ public class FocusGroupRun implements HasInfoString {
             sb.append(indentStr).append(String.format("Message: %s (ID: %s)\n", expr.message().content(), expr.message().id()));
             sb.append(indentStr).append(String.format("Objective: %s\n", expr.message().objective()));
             sb.append(indentStr).append(String.format("Expression: %s\n", expr.wording()));
-            sb.append(indentStr).append(String.format("Average Score: %.2f (%.0f%%) - %d reactions\n",
+            sb.append(indentStr).append(String.format("Average Score: %.2f - %d reactions\n",
                     score.averageScore(),
-                    score.averageScore() * 100,
                     score.count()));
 
             if (isVerbose) {
