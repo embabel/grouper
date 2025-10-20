@@ -98,8 +98,8 @@ public abstract class Model {
             String negatives,
             @JsonProperty("Quotes saying how this message makes me feel")
             List<String> quotes,
-            @JsonPropertyDescription("Score from 0.0 (doesn't resonate at all) to 1.0 (love it)")
-            double score
+            @JsonPropertyDescription("Likert rating")
+            LikertRating rating
     ) {
     }
 

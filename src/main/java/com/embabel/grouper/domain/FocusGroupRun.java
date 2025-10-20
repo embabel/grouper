@@ -69,7 +69,7 @@ public class FocusGroupRun implements HasInfoString {
 
         long count = reactions.size();
         double average = reactions.stream()
-                .mapToDouble(r -> r.reaction().score())
+                .mapToDouble(r -> r.reaction().rating().score())
                 .average()
                 .orElse(0.0);
 
@@ -79,7 +79,7 @@ public class FocusGroupRun implements HasInfoString {
     public double getAverageScoreForParticipant(Model.Participant participant) {
         return specificReactions.stream()
                 .filter(r -> r.participantMessagePresentation().participant().equals(participant))
-                .mapToDouble(r -> r.reaction().score())
+                .mapToDouble(r -> r.reaction().rating().score())
                 .average()
                 .orElse(0.0);
     }
@@ -148,8 +148,8 @@ public class FocusGroupRun implements HasInfoString {
 
                     sb.append(indentStr).append(String.format("    %s: %.2f (%.0f%%)\n",
                             participant.name(),
-                            reaction.reaction().score(),
-                            reaction.reaction().score() * 100));
+                            reaction.reaction().rating().score(),
+                            reaction.reaction().rating().score() * 100));
                     sb.append(indentStr).append(String.format("      Positives: %s\n", reaction.reaction().positives()));
                     sb.append(indentStr).append(String.format("      Negatives: %s\n", reaction.reaction().negatives()));
 

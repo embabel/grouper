@@ -1,62 +1,52 @@
 package com.embabel.grouper.agent;
 
-import com.embabel.agent.api.annotation.AchievesGoal;
-import com.embabel.agent.api.annotation.Action;
-import com.embabel.agent.api.annotation.Agent;
-import com.embabel.agent.api.annotation.Condition;
 import com.embabel.agent.api.common.Ai;
 import com.embabel.agent.api.common.OperationContext;
+import com.embabel.agent.api.common.workflow.loop.RepeatUntilBuilder;
+import com.embabel.agent.core.Agent;
 import com.embabel.agent.event.ProgressUpdateEvent;
 import com.embabel.common.util.StringTrimmingUtilsKt;
 import com.embabel.grouper.domain.FocusGroupRun;
 import com.embabel.grouper.domain.Model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
-@ConfigurationProperties(prefix = "grouper")
-record GrouperConfig(
-        int maxConcurrency,
-        int maxIterations,
-        double minMessageScore
-) implements Predicate<FocusGroupRun> {
+//@Configuration
+class Grouper2 {
 
-    @Override
-    public boolean test(FocusGroupRun focusGroupRun) {
-        return focusGroupRun.isComplete() && focusGroupRun.getBestPerformingMessageVariant().averageScore() > minMessageScore;
+    private final Logger logger = LoggerFactory.getLogger(Grouper2.class);
+
+    private final GrouperConfig config;
+    private final Predicate<FocusGroupRun> fitnessFunction;
+
+
+    Grouper2(GrouperConfig config, Predicate<FocusGroupRun> fitnessFunction) {
+        this.config = config;
+        this.fitnessFunction = fitnessFunction;
     }
 
-}
-
-@Agent(description = "Simulate a focus group")
-record Grouper(
-        GrouperConfig config,
-        Predicate<FocusGroupRun> fitnessFunction
-) {
-
-    private static final Logger logger = LoggerFactory.getLogger(Grouper.class);
-
-    private static final String DONE_CONDITION = "results_acceptable";
-
-    @Condition
-    boolean positioningIsLastEntry(OperationContext context) {
-        return context.lastResult() instanceof Model.Positioning;
+    @Bean
+    Agent grouper2() {
+        return RepeatUntilBuilder
+                .returning(FocusGroupRun.class)
+                .withMaxIterations(config.maxIterations())
+                .repeating(tac ->
+                        testPositioning(tac.getInput().lastResult(), tac))
+                .until(tac -> fitnessFunction.test(tac.getInput().lastResult()))
+                .buildAgent("focuser", "Run a focus group");
     }
 
-    @Action(pre = {"positioningIsLastEntry"}, post = {DONE_CONDITION}, canRerun = true)
+
     FocusGroupRun testPositioning(
-            Model.FocusGroup focusGroup,
-//            @RequireNameMatch("it")
-            Model.Positioning positioning,
+            FocusGroupRun focusGroupRun,
             OperationContext context
     ) {
-        var focusGroupRun = new FocusGroupRun(focusGroup, positioning);
         logger.info("Will try {} combinations", focusGroupRun.combinations.size());
 
         var specificReactions = new AtomicInteger(0);
@@ -111,12 +101,7 @@ record Grouper(
         );
     }
 
-    @Condition(name = DONE_CONDITION)
-    boolean done(FocusGroupRun focusGroupRun, OperationContext context) {
-        return context.count(FocusGroupRun.class) > config.maxIterations() || fitnessFunction.test(focusGroupRun);
-    }
 
-    @Action(cost = 1.0, post = {DONE_CONDITION}, canRerun = true)
     Model.Positioning evolvePositioning(
             FocusGroupRun focusGroupRun,
             Ai ai
@@ -148,25 +133,6 @@ record Grouper(
         return new Model.Positioning(List.of(newMessageVariants));
     }
 
-    @Action(pre = {DONE_CONDITION})
-    @AchievesGoal(description = "Focus group has considered positioning")
-        // TODO why do we need the FocusGroupRun parameter for this to execute?
-    FocusGroupRun results(FocusGroupRun focusGroupRun, OperationContext context) {
-        return context
-                .objectsOfType(FocusGroupRun.class)
-                .stream()
-                .map(it -> (FocusGroupRun) it)
-                .max(Comparator.comparing(
-                        FocusGroupRun::getBestPerformingMessageVariant,
-                        Comparator.nullsLast(Comparator.comparingDouble(Model.MessageVariantScore::averageScore))
-                ))
-                .orElse(null);
-    }
 
 }
 
-record NewMessageWordings(
-        List<String> wordings
-) {
-
-}
