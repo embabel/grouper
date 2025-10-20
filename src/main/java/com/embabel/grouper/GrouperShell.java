@@ -21,8 +21,13 @@ record GrouperShell(AgentPlatform agentPlatform) {
 
         var positioning = new Model.Positioning(List.of(
                 new Model.MessageVariants(
-                        new Model.Message("nosmoke", "smoking is bad",
-                                "To deter the participant from wanting to smoke"),
+                        new Model.Message("nosmoke",
+                                "smoking is bad",
+                                "To deter the participant from wanting to smoke",
+                                """
+                                        A concise, memorable slogan for use in a national campaign aimed at British teenagers
+                                        Imagine it on the side of every second bus in London
+                                        """),
                         "Don't smoke as it will kill you",
                         "Smoking is uncool",
                         "Smoking will give you cancer",

@@ -4,6 +4,7 @@ import com.embabel.common.ai.model.LlmOptions;
 import com.embabel.common.ai.prompt.PromptContributor;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -17,14 +18,25 @@ public abstract class Model {
     /**
      * A logical message to be evaluated
      *
-     * @param id        id of the message, in case we have variants
-     * @param content   content of the message, such as "smoking is bad"
-     * @param objective objective
+     * @param id          id of the message, in case we have variants
+     * @param content     content of the message, such as "smoking is bad"
+     * @param objective   objective
+     * @param deliverable what we want: e.g. a slogan or a blog
      */
     public record Message(
             String id,
             String content,
-            String objective) {
+            String objective,
+            String deliverable) implements PromptContributor {
+        @NotNull
+        @Override
+        public String contribution() {
+            return """
+                    Message is %s
+                    Objective is %s
+                    The deliverable result is %s
+                    """.formatted(content, objective, deliverable);
+        }
     }
 
     /**

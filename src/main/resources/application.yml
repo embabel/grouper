@@ -15,10 +15,10 @@ grouper:
 
     llm:
       role: best
-      temperature: .3
+      temperature: .8
 
 
   max-concurrency: 8
   max-variants: 12
-  max-iterations: 9
-  min-message-score: 0.86
+  max-iterations: 12
+  min-message-score: 0.9
