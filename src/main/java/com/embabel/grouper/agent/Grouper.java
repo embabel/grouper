@@ -10,17 +10,13 @@ import com.embabel.agent.event.ProgressUpdateEvent;
 import com.embabel.common.util.StringTrimmingUtilsKt;
 import com.embabel.grouper.domain.FocusGroupRun;
 import com.embabel.grouper.domain.Model;
-import io.vavr.collection.Vector;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * Agent to simulate a focus group
@@ -45,12 +41,12 @@ record Grouper(
     @Condition
     boolean positioningIsLastEntry(OperationContext context) {
         var last = context.lastResult();
-        return last instanceof Model.Positioning || last instanceof BestScoringVariants;
+        return last instanceof Model.Positioning || last instanceof Model.BestScoringVariants;
     }
 
     @Action
-    BestScoringVariants initialize() {
-        return new BestScoringVariants();
+    Model.BestScoringVariants initialize() {
+        return new Model.BestScoringVariants();
     }
 
     @Action(pre = {"positioningIsLastEntry"}, post = {DONE_CONDITION}, canRerun = true)
@@ -58,7 +54,7 @@ record Grouper(
             Model.FocusGroup focusGroup,
 //            @RequireNameMatch("it")
             Model.Positioning positioning,
-            BestScoringVariants bestScoringVariants,
+            Model.BestScoringVariants bestScoringVariants,
             OperationContext context
     ) {
         var focusGroupRun = new FocusGroupRun(focusGroup, positioning);
@@ -81,7 +77,7 @@ record Grouper(
                 }
         );
         results.forEach(focusGroupRun::record);
-        bestScoringVariants.updateFrom(focusGroupRun);
+        bestScoringVariants.updateFrom(focusGroupRun, config);
         return focusGroupRun;
     }
 
@@ -129,7 +125,7 @@ record Grouper(
     @Action(cost = 1.0, post = {DONE_CONDITION}, canRerun = true)
     Model.Positioning evolvePositioning(
             FocusGroupRun focusGroupRun,
-            BestScoringVariants bestScoringVariants,
+            Model.BestScoringVariants bestScoringVariants,
             Ai ai
     ) {
         logger.info("Evolving positioning based on FocusGroupRun {}", focusGroupRun);
@@ -168,53 +164,12 @@ record Grouper(
 
     @Action(pre = {DONE_CONDITION})
     @AchievesGoal(description = "Focus group has considered positioning")
-        // TODO why do we need the FocusGroupRun parameter for this to execute?
-    FocusGroupRun results(
+        // TODO why do we need the BestScoringVariant (and FocusGroupRun?) parameter for this to execute?
+    Model.BestScoringVariants results(
+            Model.BestScoringVariants bestScoringVariants,
             FocusGroupRun focusGroupRun,
             OperationContext context) {
-        return context
-                .objectsOfType(FocusGroupRun.class)
-                .stream()
-                .map(it -> (FocusGroupRun) it)
-                .max(Comparator.comparing(
-                        FocusGroupRun::getBestPerformingMessageVariant,
-                        Comparator.nullsLast(Comparator.comparingDouble(Model.MessageVariantScore::averageScore))
-                ))
-                .orElse(null);
-    }
-
-    private class BestScoringVariants {
-        private Vector<Model.MessageVariantScore> bestVariants = Vector.empty();
-
-        public List<Model.MessageVariantScore> bestVariants() {
-            return bestVariants.asJava();
-        }
-
-        public void updateFrom(FocusGroupRun focusGroupRun) {
-            var newScores = Vector.ofAll(
-                    focusGroupRun.positioning.messageVariants().stream()
-                            .flatMap(mv -> mv.expressions().stream())
-                            .map(focusGroupRun::getAverageScoreForMessageVariant)
-                            .filter(score -> score.count() > 0)
-                            .toList()
-            );
-
-            bestVariants = bestVariants
-                    .appendAll(newScores)
-                    .distinctBy(score -> score.messageVariant().wording().trim())
-                    .sorted(Comparator.comparingDouble(Model.MessageVariantScore::averageScore).reversed())
-                    .take(config.maxVariants());
-        }
-
-        @NotNull
-        @Override
-        public String toString() {
-            return bestVariants
-                    .sorted(Comparator.comparingDouble(Model.MessageVariantScore::averageScore).reversed())
-                    .map(mv -> "%.2f: %s".formatted(mv.averageScore(), mv.messageVariant().wording()))
-                    .collect(Collectors.joining("\n"));
-
-        }
+        return bestScoringVariants;
     }
 }
 

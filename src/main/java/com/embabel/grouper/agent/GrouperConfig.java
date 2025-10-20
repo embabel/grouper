@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.function.Predicate;
 
 @ConfigurationProperties(prefix = "grouper")
-record GrouperConfig(
+public record GrouperConfig(
         int maxConcurrency,
         int maxVariants,
         int maxIterations,
@@ -20,6 +20,7 @@ record GrouperConfig(
 
     @Override
     public boolean test(FocusGroupRun focusGroupRun) {
+        // TODO don't have divisive messages
         return focusGroupRun.isComplete() && focusGroupRun.getBestPerformingMessageVariant().averageScore() > minMessageScore;
     }
 

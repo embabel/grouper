@@ -39,6 +39,6 @@ grouper:
 
 
   max-concurrency: 8
-  max-variants: 12
-  max-iterations: 12
+  max-variants: 10
+  max-iterations: 10
   min-message-score: 0.9

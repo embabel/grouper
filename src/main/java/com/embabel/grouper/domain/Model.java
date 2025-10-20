@@ -2,13 +2,17 @@ package com.embabel.grouper.domain;
 
 import com.embabel.common.ai.model.LlmOptions;
 import com.embabel.common.ai.prompt.PromptContributor;
+import com.embabel.grouper.agent.GrouperConfig;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import io.vavr.collection.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Holder for public domain types. Avoids proliferation of small files.
@@ -142,6 +146,40 @@ public abstract class Model {
             double averageScore,
             long count
     ) {
+    }
+
+    public static class BestScoringVariants {
+        private Vector<MessageVariantScore> bestVariants = Vector.empty();
+
+        public List<Model.MessageVariantScore> bestVariants() {
+            return bestVariants.asJava();
+        }
+
+        public void updateFrom(FocusGroupRun focusGroupRun, GrouperConfig config) {
+            var newScores = Vector.ofAll(
+                    focusGroupRun.positioning.messageVariants().stream()
+                            .flatMap(mv -> mv.expressions().stream())
+                            .map(focusGroupRun::getAverageScoreForMessageVariant)
+                            .filter(score -> score.count() > 0)
+                            .toList()
+            );
+
+            bestVariants = bestVariants
+                    .appendAll(newScores)
+                    .distinctBy(score -> score.messageVariant().wording().trim())
+                    .sorted(Comparator.comparingDouble(Model.MessageVariantScore::averageScore).reversed())
+                    .take(config.maxVariants());
+        }
+
+        @NotNull
+        @Override
+        public String toString() {
+            return bestVariants
+                    .sorted(Comparator.comparingDouble(Model.MessageVariantScore::averageScore).reversed())
+                    .map(mv -> "%.2f: %s".formatted(mv.averageScore(), mv.messageVariant().wording()))
+                    .collect(Collectors.joining("\n"));
+
+        }
     }
 
 }

@@ -3,7 +3,6 @@ package com.embabel.grouper;
 import com.embabel.agent.api.common.autonomy.AgentInvocation;
 import com.embabel.agent.core.AgentPlatform;
 import com.embabel.agent.core.Verbosity;
-import com.embabel.grouper.domain.FocusGroupRun;
 import com.embabel.grouper.domain.InMemoryParticipantRepository;
 import com.embabel.grouper.domain.Model;
 import org.springframework.shell.standard.ShellComponent;
@@ -41,11 +40,12 @@ record GrouperShell(AgentPlatform agentPlatform) {
                 )
         ));
 
-        var focusGroupRun = AgentInvocation.builder(agentPlatform)
+        // TODO get AgentProcess back also: Could be like Spring things, task Arjen
+        var best = AgentInvocation.builder(agentPlatform)
                 .options(o -> o.verbosity(new Verbosity(true, false, false, false)))
-                .build(FocusGroupRun.class)
+                .build(Model.BestScoringVariants.class)
                 .invoke(focusGroup, participants, positioning);
-        return focusGroupRun.infoString(true, 5);
+        return best.toString();
     }
 
 }
