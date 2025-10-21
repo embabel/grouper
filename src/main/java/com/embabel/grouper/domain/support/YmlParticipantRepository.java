@@ -5,7 +5,6 @@ import com.embabel.grouper.domain.Model;
 import com.embabel.grouper.domain.ParticipantRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.List;
@@ -46,37 +45,11 @@ public class YmlParticipantRepository implements ParticipantRepository {
     }
 
     private Model.Participant createParticipant(ParticipantInfo info, LlmOptions llm) {
-        return new Model.Participant() {
-            @Override
-            public String id() {
-                return info.name() + "-" + llm.getModel();
-            }
-
-            @Override
-            public String name() {
-                return info.name();
-            }
-
-            @Override
-            public LlmOptions llm() {
-                return llm;
-            }
-
-            @Override
-            public double populationPercentage() {
-                return info.populationPercentage() != null ? info.populationPercentage() : 1.0;
-            }
-
-            @NotNull
-            @Override
-            public String contribution() {
-                return "I am " + info.identity();
-            }
-
-            @Override
-            public String toString() {
-                return name() + " (" + llm.getModel() + ")";
-            }
-        };
+        return new PromptedParticipant(
+                info.name(),
+                llm,
+                info.identity(),
+                info.populationPercentage()
+        );
     }
 }

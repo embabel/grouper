@@ -1,7 +1,11 @@
+# Note that population percentages do not need to sum to 100%.
+
 participants:
   - name: "Alice"
     identity: >
       a 15 year old girl who lives in Richmond and loves Taylor Swift and tennis
+      Very social and has a large group of friends
+      Very concerned about appearance
     populationPercentage: 10.0
 
   - name: "Ziff"
@@ -15,15 +19,16 @@ participants:
       a 16 year old boy who lives in Chertsey and wants to study PPE at Cambridge. 
       You are a member of the young conservatives. 
       You go to the gym every day and have run a mile in 4:30.
-    populationPercentage: 4.0
+    populationPercentage: 3.0
 
   - name: "Aidan"
     identity: >
       a 15 year old boy who has severe asthma and allergies. 
-      Lives with his single mother in Woking. Hopes to become a doctor.
+      You live with your single mother in Woking. 
+      You hope to become a doctor.
     populationPercentage: 3.0
 
 llms:
   - model: "gpt-4.1-nano"
   - model: "gpt-4.1-nano"
-    temperature: 0.7
+    temperature: 0.7 # Make this one a bit more creative
