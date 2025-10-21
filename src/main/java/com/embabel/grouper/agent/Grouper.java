@@ -32,14 +32,16 @@ record Grouper(
 
     private static final Logger logger = LoggerFactory.getLogger(Grouper.class);
 
+    private static final String RUN_FOCUS_GROUP_CONDITION = "run_focus_group";
+
     private static final String DONE_CONDITION = "results_acceptable";
 
     Grouper {
         logger.info("Config: {}", config);
     }
 
-    @Condition
-    boolean positioningIsLastEntry(OperationContext context) {
+    @Condition(name = RUN_FOCUS_GROUP_CONDITION)
+    boolean shouldRunFocusGroup(OperationContext context) {
         var last = context.lastResult();
         return last instanceof Model.Positioning || last instanceof Model.BestScoringVariants;
     }
@@ -49,10 +51,9 @@ record Grouper(
         return new Model.BestScoringVariants(config);
     }
 
-    @Action(pre = {"positioningIsLastEntry"}, post = {DONE_CONDITION}, canRerun = true)
-    FocusGroupRun testPositioning(
+    @Action(pre = {RUN_FOCUS_GROUP_CONDITION}, post = {DONE_CONDITION}, canRerun = true)
+    FocusGroupRun runFocusGroup(
             Model.FocusGroup focusGroup,
-//            @RequireNameMatch("it")
             Model.Positioning positioning,
             Model.BestScoringVariants bestScoringVariants,
             OperationContext context
@@ -170,11 +171,8 @@ record Grouper(
 
     @Action(pre = {DONE_CONDITION})
     @AchievesGoal(description = "Focus group has considered positioning")
-        // TODO why do we need the BestScoringVariant (and FocusGroupRun?) parameter for this to execute?
     Model.BestScoringVariants results(
-            Model.BestScoringVariants bestScoringVariants,
-            FocusGroupRun focusGroupRun,
-            OperationContext context) {
+            Model.BestScoringVariants bestScoringVariants) {
         return bestScoringVariants;
     }
 
