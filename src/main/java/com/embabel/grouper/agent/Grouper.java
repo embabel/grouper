@@ -137,7 +137,7 @@ record Grouper(
                 .creating(CreativeControl.class)
                 .fromPrompt("""
                         Given the objectives, consider
-                        the following feedback:
+                        the following feedback and previous learnings:
                         %s
                         
                         1. Summarize the feedback in no more than %d words.
@@ -145,6 +145,8 @@ record Grouper(
                         2. Create new message wordings we could try.
                         
                         Be creative. Try to break through!
+                        Feel free to rephrase promising previous attempts for greater impact,
+                        or come up with completely new ideas!
                         
                         Never use more than %d variants
                         
