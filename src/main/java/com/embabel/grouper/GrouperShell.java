@@ -32,15 +32,10 @@ record GrouperShell(AgentPlatform agentPlatform) {
                         "Smoking will give you cancer",
                         "Boys won't want to kiss you if you stink of cigarette smoke",
                         "Smoking makes you slow",
-//                        "Smoking is for losers",
-//                        "Winners don't smoke",
-//                        "Smoking is boring",
-//                        "Taylor Swift hates smoking",
                         "Look at old people who smoke. They look really bad. If they were your age, they wouldn't start"
                 )
         ));
 
-        // TODO get AgentProcess back also: Could be like Spring things, task Arjen
         var best = AgentInvocation.builder(agentPlatform)
                 .options(o -> o.verbosity(new Verbosity(true, false, false, false)))
                 .build(Model.BestScoringVariants.class)

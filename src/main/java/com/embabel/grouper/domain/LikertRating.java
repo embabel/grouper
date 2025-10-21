@@ -8,7 +8,7 @@ public record LikertRating(Scale scale) {
     /**
      * Likert scale rating
      */
-    enum Scale {
+    public enum Scale {
         STRONGLY_DISAGREE(0.0),
         DISAGREE(0.25),
         NEUTRAL(0.5),

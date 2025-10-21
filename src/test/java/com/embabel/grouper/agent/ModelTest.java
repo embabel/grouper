@@ -3,6 +3,7 @@ package com.embabel.grouper.agent;
 import com.embabel.common.ai.model.LlmOptions;
 import com.embabel.grouper.domain.FocusGroupRun;
 import com.embabel.grouper.domain.Model;
+import com.embabel.grouper.domain.LikertRating;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -59,8 +60,8 @@ class ModelTest {
                 List.of(participant1, participant2)
         );
 
-        Model.Message msg1 = new Model.Message("msg1", "First message content", "Test objective 1");
-        Model.Message msg2 = new Model.Message("msg2", "Second message content", "Test objective 2");
+        Model.Message msg1 = new Model.Message("msg1", "First message content", "Test objective 1", "campaign slogan");
+        Model.Message msg2 = new Model.Message("msg2", "Second message content", "Test objective 2", "campaign message");
 
         messageVariant1 = new Model.MessageVariant(msg1, "First message wording");
         messageVariant2 = new Model.MessageVariant(msg2, "Second message wording");
@@ -79,7 +80,7 @@ class ModelTest {
                 "Positive feedback",
                 "Negative feedback",
                 List.of("quote1", "quote2"),
-                8.5
+                new LikertRating(LikertRating.Scale.STRONGLY_AGREE)
         );
 
         Model.SpecificReaction specificReaction = new Model.SpecificReaction(
@@ -105,13 +106,13 @@ class ModelTest {
     void testGetReactionsForParticipant_MultipleReactions() {
         Model.SpecificReaction reaction1 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant1),
-                new Model.Reaction("Good", "Bad", List.of(), 7.0),
+                new Model.Reaction("Good", "Bad", List.of(), new LikertRating(LikertRating.Scale.AGREE)),
                 Instant.now()
         );
 
         Model.SpecificReaction reaction2 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant2),
-                new Model.Reaction("Great", "Poor", List.of(), 9.0),
+                new Model.Reaction("Great", "Poor", List.of(), new LikertRating(LikertRating.Scale.STRONGLY_AGREE)),
                 Instant.now()
         );
 
@@ -126,14 +127,14 @@ class ModelTest {
     void testGetAverageScoreForMessage_SingleReaction() {
         Model.SpecificReaction reaction = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant1),
-                new Model.Reaction("Positive", "Negative", List.of(), 8.5),
+                new Model.Reaction("Positive", "Negative", List.of(), new LikertRating(LikertRating.Scale.STRONGLY_AGREE)),
                 Instant.now()
         );
 
         focusGroupRun.record(reaction);
 
         Model.MessageVariantScore messageVariantScore = focusGroupRun.getAverageScoreForMessageVariant(messageVariant1);
-        assertEquals(8.5, messageVariantScore.averageScore(), 0.001);
+        assertEquals(1.0, messageVariantScore.averageScore(), 0.001);
         assertEquals(1, messageVariantScore.count());
     }
 
@@ -141,13 +142,13 @@ class ModelTest {
     void testGetAverageScoreForMessage_MultipleReactions() {
         Model.SpecificReaction reaction1 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant1),
-                new Model.Reaction("Good", "Bad", List.of(), 7.0),
+                new Model.Reaction("Good", "Bad", List.of(), new LikertRating(LikertRating.Scale.AGREE)),
                 Instant.now()
         );
 
         Model.SpecificReaction reaction2 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant2, messageVariant1),
-                new Model.Reaction("Great", "Poor", List.of(), 9.0),
+                new Model.Reaction("Great", "Poor", List.of(), new LikertRating(LikertRating.Scale.STRONGLY_AGREE)),
                 Instant.now()
         );
 
@@ -155,7 +156,7 @@ class ModelTest {
         focusGroupRun.record(reaction2);
 
         Model.MessageVariantScore messageVariantScore = focusGroupRun.getAverageScoreForMessageVariant(messageVariant1);
-        assertEquals(8.0, messageVariantScore.averageScore(), 0.001);
+        assertEquals(0.875, messageVariantScore.averageScore(), 0.001);
         assertEquals(2, messageVariantScore.count());
     }
 
@@ -170,13 +171,13 @@ class ModelTest {
     void testGetAverageScoreForMessage_DifferentMessages() {
         Model.SpecificReaction reaction1 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant1),
-                new Model.Reaction("Good", "Bad", List.of(), 7.0),
+                new Model.Reaction("Good", "Bad", List.of(), new LikertRating(LikertRating.Scale.AGREE)),
                 Instant.now()
         );
 
         Model.SpecificReaction reaction2 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant2),
-                new Model.Reaction("Great", "Poor", List.of(), 9.0),
+                new Model.Reaction("Great", "Poor", List.of(), new LikertRating(LikertRating.Scale.STRONGLY_AGREE)),
                 Instant.now()
         );
 
@@ -186,9 +187,9 @@ class ModelTest {
         Model.MessageVariantScore score1 = focusGroupRun.getAverageScoreForMessageVariant(messageVariant1);
         Model.MessageVariantScore score2 = focusGroupRun.getAverageScoreForMessageVariant(messageVariant2);
 
-        assertEquals(7.0, score1.averageScore(), 0.001);
+        assertEquals(0.75, score1.averageScore(), 0.001);
         assertEquals(1, score1.count());
-        assertEquals(9.0, score2.averageScore(), 0.001);
+        assertEquals(1.0, score2.averageScore(), 0.001);
         assertEquals(1, score2.count());
     }
 
@@ -196,27 +197,27 @@ class ModelTest {
     void testGetAverageScoreForParticipant_SingleReaction() {
         Model.SpecificReaction reaction = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant1),
-                new Model.Reaction("Positive", "Negative", List.of(), 8.5),
+                new Model.Reaction("Positive", "Negative", List.of(), new LikertRating(LikertRating.Scale.STRONGLY_AGREE)),
                 Instant.now()
         );
 
         focusGroupRun.record(reaction);
 
         double avgScore = focusGroupRun.getAverageScoreForParticipant(participant1);
-        assertEquals(8.5, avgScore, 0.001);
+        assertEquals(1.0, avgScore, 0.001);
     }
 
     @Test
     void testGetAverageScoreForParticipant_MultipleReactions() {
         Model.SpecificReaction reaction1 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant1),
-                new Model.Reaction("Good", "Bad", List.of(), 6.0),
+                new Model.Reaction("Good", "Bad", List.of(), new LikertRating(LikertRating.Scale.NEUTRAL)),
                 Instant.now()
         );
 
         Model.SpecificReaction reaction2 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant2),
-                new Model.Reaction("Great", "Poor", List.of(), 10.0),
+                new Model.Reaction("Great", "Poor", List.of(), new LikertRating(LikertRating.Scale.STRONGLY_AGREE)),
                 Instant.now()
         );
 
@@ -224,7 +225,7 @@ class ModelTest {
         focusGroupRun.record(reaction2);
 
         double avgScore = focusGroupRun.getAverageScoreForParticipant(participant1);
-        assertEquals(8.0, avgScore, 0.001);
+        assertEquals(0.75, avgScore, 0.001);
     }
 
     @Test
@@ -237,21 +238,21 @@ class ModelTest {
     void testGetAverageScoreForParticipant_DifferentParticipants() {
         Model.SpecificReaction reaction1 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant1),
-                new Model.Reaction("Good", "Bad", List.of(), 7.0),
+                new Model.Reaction("Good", "Bad", List.of(), new LikertRating(LikertRating.Scale.AGREE)),
                 Instant.now()
         );
 
         Model.SpecificReaction reaction2 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant2, messageVariant1),
-                new Model.Reaction("Great", "Poor", List.of(), 9.0),
+                new Model.Reaction("Great", "Poor", List.of(), new LikertRating(LikertRating.Scale.STRONGLY_AGREE)),
                 Instant.now()
         );
 
         focusGroupRun.record(reaction1);
         focusGroupRun.record(reaction2);
 
-        assertEquals(7.0, focusGroupRun.getAverageScoreForParticipant(participant1), 0.001);
-        assertEquals(9.0, focusGroupRun.getAverageScoreForParticipant(participant2), 0.001);
+        assertEquals(0.75, focusGroupRun.getAverageScoreForParticipant(participant1), 0.001);
+        assertEquals(1.0, focusGroupRun.getAverageScoreForParticipant(participant2), 0.001);
     }
 
     @Test
@@ -264,7 +265,7 @@ class ModelTest {
         // Only participant1 reacts to messageExpression1
         Model.SpecificReaction reaction = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant1),
-                new Model.Reaction("Good", "Bad", List.of(), 7.0),
+                new Model.Reaction("Good", "Bad", List.of(), new LikertRating(LikertRating.Scale.AGREE)),
                 Instant.now()
         );
 
@@ -278,13 +279,13 @@ class ModelTest {
         // participant1 reacts to both messages
         Model.SpecificReaction reaction1 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant1),
-                new Model.Reaction("Good", "Bad", List.of(), 7.0),
+                new Model.Reaction("Good", "Bad", List.of(), new LikertRating(LikertRating.Scale.AGREE)),
                 Instant.now()
         );
 
         Model.SpecificReaction reaction2 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant2),
-                new Model.Reaction("Great", "Poor", List.of(), 9.0),
+                new Model.Reaction("Great", "Poor", List.of(), new LikertRating(LikertRating.Scale.STRONGLY_AGREE)),
                 Instant.now()
         );
 
@@ -300,25 +301,25 @@ class ModelTest {
         // All participants react to all messages
         Model.SpecificReaction reaction1 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant1),
-                new Model.Reaction("Good", "Bad", List.of(), 7.0),
+                new Model.Reaction("Good", "Bad", List.of(), new LikertRating(LikertRating.Scale.AGREE)),
                 Instant.now()
         );
 
         Model.SpecificReaction reaction2 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant2),
-                new Model.Reaction("Great", "Poor", List.of(), 9.0),
+                new Model.Reaction("Great", "Poor", List.of(), new LikertRating(LikertRating.Scale.STRONGLY_AGREE)),
                 Instant.now()
         );
 
         Model.SpecificReaction reaction3 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant2, messageVariant1),
-                new Model.Reaction("Okay", "Meh", List.of(), 5.0),
+                new Model.Reaction("Okay", "Meh", List.of(), new LikertRating(LikertRating.Scale.NEUTRAL)),
                 Instant.now()
         );
 
         Model.SpecificReaction reaction4 = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant2, messageVariant2),
-                new Model.Reaction("Nice", "Nope", List.of(), 8.0),
+                new Model.Reaction("Nice", "Nope", List.of(), new LikertRating(LikertRating.Scale.AGREE)),
                 Instant.now()
         );
 
@@ -333,7 +334,7 @@ class ModelTest {
     @Test
     void testIsComplete_WithMultipleExpressionsPerMessage() {
         // Create a more complex positioning with multiple expressions per message
-        Model.Message msg1 = new Model.Message("msg1", "First message content", "Test objective");
+        Model.Message msg1 = new Model.Message("msg1", "First message content", "Test objective", "slogan");
 
         Model.MessageVariant expr1a = new Model.MessageVariant(msg1, "Expression 1A");
         Model.MessageVariant expr1b = new Model.MessageVariant(msg1, "Expression 1B");
@@ -350,7 +351,7 @@ class ModelTest {
         // Add reaction to first wording only
         run.record(new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, expr1a),
-                new Model.Reaction("Good", "Bad", List.of(), 7.0),
+                new Model.Reaction("Good", "Bad", List.of(), new LikertRating(LikertRating.Scale.AGREE)),
                 Instant.now()
         ));
 
@@ -360,7 +361,7 @@ class ModelTest {
         // Add reaction to second wording
         run.record(new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, expr1b),
-                new Model.Reaction("Great", "Poor", List.of(), 8.0),
+                new Model.Reaction("Great", "Poor", List.of(), new LikertRating(LikertRating.Scale.AGREE)),
                 Instant.now()
         ));
 
@@ -378,7 +379,7 @@ class ModelTest {
     void testGetBestPerformingMessageVariant_SingleVariant() {
         Model.SpecificReaction reaction = new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant1),
-                new Model.Reaction("Good", "Bad", List.of(), 0.75),
+                new Model.Reaction("Good", "Bad", List.of(), new LikertRating(LikertRating.Scale.AGREE)),
                 Instant.now()
         );
         focusGroupRun.record(reaction);
@@ -394,31 +395,31 @@ class ModelTest {
         // messageVariant1 gets lower scores
         focusGroupRun.record(new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant1),
-                new Model.Reaction("Okay", "Meh", List.of(), 0.60),
+                new Model.Reaction("Okay", "Meh", List.of(), new LikertRating(LikertRating.Scale.NEUTRAL)),
                 Instant.now()
         ));
         focusGroupRun.record(new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant2, messageVariant1),
-                new Model.Reaction("Not great", "Could be better", List.of(), 0.55),
+                new Model.Reaction("Not great", "Could be better", List.of(), new LikertRating(LikertRating.Scale.DISAGREE)),
                 Instant.now()
         ));
 
         // messageVariant2 gets higher scores
         focusGroupRun.record(new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant2),
-                new Model.Reaction("Great", "None", List.of(), 0.90),
+                new Model.Reaction("Great", "None", List.of(), new LikertRating(LikertRating.Scale.STRONGLY_AGREE)),
                 Instant.now()
         ));
         focusGroupRun.record(new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant2, messageVariant2),
-                new Model.Reaction("Excellent", "Minimal", List.of(), 0.85),
+                new Model.Reaction("Excellent", "Minimal", List.of(), new LikertRating(LikertRating.Scale.STRONGLY_AGREE)),
                 Instant.now()
         ));
 
         Model.MessageVariantScore best = focusGroupRun.getBestPerformingMessageVariant();
         assertNotNull(best);
         assertEquals(messageVariant2, best.messageVariant());
-        assertEquals(0.875, best.averageScore(), 0.001); // (0.90 + 0.85) / 2
+        assertEquals(1.0, best.averageScore(), 0.001); // (1.0 + 1.0) / 2
         assertEquals(2, best.count());
     }
 
@@ -427,18 +428,18 @@ class ModelTest {
         // Both variants get the same score - should return first one encountered
         focusGroupRun.record(new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant1),
-                new Model.Reaction("Good", "Bad", List.of(), 0.70),
+                new Model.Reaction("Good", "Bad", List.of(), new LikertRating(LikertRating.Scale.AGREE)),
                 Instant.now()
         ));
         focusGroupRun.record(new Model.SpecificReaction(
                 new Model.ParticipantMessagePresentation(participant1, messageVariant2),
-                new Model.Reaction("Good", "Bad", List.of(), 0.70),
+                new Model.Reaction("Good", "Bad", List.of(), new LikertRating(LikertRating.Scale.AGREE)),
                 Instant.now()
         ));
 
         Model.MessageVariantScore best = focusGroupRun.getBestPerformingMessageVariant();
         assertNotNull(best);
-        assertEquals(0.70, best.averageScore(), 0.001);
+        assertEquals(0.75, best.averageScore(), 0.001);
         // Either variant is acceptable since they tie
         assertTrue(best.messageVariant().equals(messageVariant1) || best.messageVariant().equals(messageVariant2));
     }
