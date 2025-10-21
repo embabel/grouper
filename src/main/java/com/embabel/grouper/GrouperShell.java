@@ -2,7 +2,8 @@ package com.embabel.grouper;
 
 import com.embabel.agent.api.common.autonomy.AgentInvocation;
 import com.embabel.agent.core.AgentPlatform;
-import com.embabel.agent.core.Verbosity;
+import com.embabel.agent.core.Budget;
+import com.embabel.agent.core.ProcessOptions;
 import com.embabel.grouper.agent.GrouperProperties;
 import com.embabel.grouper.domain.MessageVariantsRepository;
 import com.embabel.grouper.domain.Model;
@@ -38,7 +39,10 @@ record GrouperShell(
         var positioning = new Model.Positioning(List.of(messageVariants));
 
         var bestScoringVariants = AgentInvocation.builder(agentPlatform)
-                .options(o -> o.verbosity(new Verbosity(config().showPrompts(), false, false, false)))
+                .options(new ProcessOptions.Builder()
+                        .verbosity(v -> v.showPrompts(config().showPrompts()))
+                        .budget(new Budget(config.maxCost(), Integer.MAX_VALUE, Integer.MAX_VALUE))
+                        .build())
                 .build(Model.BestScoringVariants.class)
                 .invoke(focusGroup, participants, positioning);
         return bestScoringVariants.toString();

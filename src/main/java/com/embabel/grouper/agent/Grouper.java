@@ -135,7 +135,7 @@ record Grouper(
             Model.BestScoringVariants bestScoringVariants,
             Ai ai
     ) {
-        logger.info("Evolving positioning based on FocusGroupRun {}", focusGroupRun);
+        logger.debug("Evolving positioning based on FocusGroupRun {}", focusGroupRun);
         // TODO Should handle > 1 message
         var messageVariants = focusGroupRun.positioning.messageVariants().getFirst();
         var creativeControl = properties.nextCreative()
@@ -165,6 +165,7 @@ record Grouper(
                         properties.maxVariants(),
                         bestScoringVariants)
                 );
+        logger.info("Best scoring variants so far:\n{}", bestScoringVariants);
         logger.info("Creative input: {}", creativeControl);
         bestScoringVariants.addFinding(creativeControl.summary);
         var newMessageVariants = new Model.MessageVariants(

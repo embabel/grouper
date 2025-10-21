@@ -18,12 +18,12 @@ public record GrouperProperties(
         double minMessageScore,
         int findingsWordCount,
         boolean showPrompts,
+        double maxCost,
         List<Actor<RoleGoalBackstory>> creatives
 ) implements Predicate<FocusGroupRun> {
 
     @Override
     public boolean test(FocusGroupRun focusGroupRun) {
-        // TODO don't have divisive messages
         return focusGroupRun.isComplete() && decisionScore(focusGroupRun.getBestPerformingMessageVariant()) > minMessageScore;
     }
 

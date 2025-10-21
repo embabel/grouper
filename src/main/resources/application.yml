@@ -44,4 +44,5 @@ grouper:
   max-iterations: 3
   min-message-score: 0.9
   findings-word-count: 60
-  show-prompts: false
+  show-prompts: true
+  max-cost: 5.0
