@@ -1,6 +1,6 @@
 <img align="left" src="https://github.com/embabel/embabel-agent/blob/main/embabel-agent-api/images/315px-Meister_der_Weltenchronik_001.jpg?raw=true" width="180">
 
-![Build](https://github.com/embabel/java-agent-template/actions/workflows/maven.yml/badge.svg)
+![Build](https://github.com/embabel/grouper/actions/workflows/maven.yml/badge.svg)
 
 ![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring](https://img.shields.io/badge/spring-%236DB33F.svg?style=for-the-badge&logo=spring&logoColor=white)
@@ -20,9 +20,32 @@
 
 # Running
 
+> Running this will cost money. Out of the box expect ~ 10c per run. If you enlarge the participant matrix or evaluate
+> longer deliverables this will increase.
+
+Set your OpenAI and Anthropic API keys.
+The environment variables are:
+
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+
+> To use local models or other providers, change `application.yml` to
+> reference different models.
+
 Run the shell script to start Embabel under Spring Shell:
 
 ```bash
 ./scripts/shell.sh
 ```
+
+Then run the following command:
+
+```
+focus
+```
+
+Edit the [GrouperShell](src/main/java/com/embabel/grouper/GrouperShell.java) class to change hard-coded values.
+You can implement [ParticipantRepository](src/main/java/com/embabel/grouper/domain/ParticipantRepository.java)
+to use a real database for participants, or change the hard-coded
+values. See [application.yml](src/main/resources/application.yml) for resources.
 

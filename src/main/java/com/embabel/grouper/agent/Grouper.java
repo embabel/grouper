@@ -43,6 +43,8 @@ record Grouper(
     @Condition(name = RUN_FOCUS_GROUP_CONDITION)
     boolean shouldRunFocusGroup(OperationContext context) {
         var last = context.lastResult();
+        // We run if we have new Positioning or are just getting started,
+        // having run the init method
         return last instanceof Model.Positioning || last instanceof Model.BestScoringVariants;
     }
 
