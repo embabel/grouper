@@ -18,6 +18,14 @@
 
 # AI Focus Groups
 
+Given an objective, tests message wordings to achieve it.
+Evolves messaging based on feedback.
+Edit [application.yml](src/main/resources/application.yml) to change `maxIterations` and other
+config to determine how it behaves.
+
+> Set `maxIterations` to 1 to evaluate the messages passed in, rather than attempt to evolve them.
+> This will ensure negligible cost.
+
 # Running
 
 > Running this will cost money. Out of the box expect ~ 10c per run. If you enlarge the participant matrix or evaluate

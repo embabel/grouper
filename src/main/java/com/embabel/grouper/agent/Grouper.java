@@ -122,7 +122,7 @@ record Grouper(
 
     @Condition(name = DONE_CONDITION)
     boolean done(FocusGroupRun focusGroupRun, OperationContext context) {
-        return context.count(FocusGroupRun.class) > config.maxIterations() || fitnessFunction.test(focusGroupRun);
+        return context.count(FocusGroupRun.class) >= config.maxIterations() || fitnessFunction.test(focusGroupRun);
     }
 
     @Action(cost = 1.0, post = {DONE_CONDITION}, canRerun = true)
