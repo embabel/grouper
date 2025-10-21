@@ -74,7 +74,11 @@ record Grouper(
                     var count = specificReactions.incrementAndGet();
                     context.getProcessContext().onProcessEvent(
                             new ProgressUpdateEvent(context.getAgentProcess(),
-                                    "focus", count, focusGroupRun.combinations.size())
+                                    " this focus group", count, focusGroupRun.combinations.size())
+                    );
+                    context.getProcessContext().onProcessEvent(
+                            new ProgressUpdateEvent(context.getAgentProcess(),
+                                    "message evolution", context.count(FocusGroupRun.class), properties.maxIterations())
                     );
                     return sp;
                 }

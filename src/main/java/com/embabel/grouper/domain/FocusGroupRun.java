@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Built up as we return results.
+ * Mutable: built up as we receive evaluation results.
  * Exposes stats.
  */
 public class FocusGroupRun implements HasInfoString {
@@ -85,7 +85,7 @@ public class FocusGroupRun implements HasInfoString {
 
         double normalizedAverage = reactions.stream()
                 .mapToDouble(r -> r.reaction().rating().score() *
-                                  focusGroup.normalizedWeight(r.participantMessagePresentation().participant()))
+                        focusGroup.normalizedWeight(r.participantMessagePresentation().participant()))
                 .sum() / totalWeight;
 
         return new Model.MessageVariantScore(messageVariant, average, normalizedAverage, count);

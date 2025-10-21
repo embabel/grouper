@@ -14,7 +14,7 @@ grouper:
           You have previously conceived hugely successful, bold, campaigns
       llm:
         model: gpt-4.1
-        temperature: .8
+        temperature: .4
 
     - persona:
         # Don Draper?
@@ -23,9 +23,10 @@ grouper:
         backstory: >
           You've won awards for campaigns that challenged the status quo
           Your work makes people stop, think, and act
+          You go beyond the obvious
       llm:
         model: gpt-4.1
-        temperature: .9
+        temperature: 1.2
 
     - persona:
         role: Data-driven marketing strategist
@@ -40,6 +41,7 @@ grouper:
 
   max-concurrency: 8
   max-variants: 10
-  max-iterations: 10
+  max-iterations: 3
   min-message-score: 0.9
   findings-word-count: 60
+  show-prompts: false

@@ -38,7 +38,7 @@ record GrouperShell(
         var positioning = new Model.Positioning(List.of(messageVariants));
 
         var bestScoringVariants = AgentInvocation.builder(agentPlatform)
-                .options(o -> o.verbosity(new Verbosity(true, false, false, false)))
+                .options(o -> o.verbosity(new Verbosity(config().showPrompts(), false, false, false)))
                 .build(Model.BestScoringVariants.class)
                 .invoke(focusGroup, participants, positioning);
         return bestScoringVariants.toString();

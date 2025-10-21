@@ -59,4 +59,9 @@ base name.
 These files show the required format.
 
 See [application.yml](src/main/resources/application.yml) for other configuration.
+This file also controls the creative personas that will attempt to evolve
+the messaging.
+
+Also in `application.yml`, you should probably raise `maxIterations` to at least 10
+to give the agent the chance to optimize the messaging.
 

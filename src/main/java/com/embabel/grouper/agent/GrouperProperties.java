@@ -17,6 +17,7 @@ public record GrouperProperties(
         int maxIterations,
         double minMessageScore,
         int findingsWordCount,
+        boolean showPrompts,
         List<Actor<RoleGoalBackstory>> creatives
 ) implements Predicate<FocusGroupRun> {
 
