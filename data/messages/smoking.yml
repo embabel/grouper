@@ -1,0 +1,15 @@
+message:
+  id: "nosmoke"
+  content: "smoking is bad"
+  objective: "To deter the participant from wanting to smoke"
+  deliverable: |
+    A concise, memorable slogan for use in a national campaign aimed at British teenagers
+    Imagine it on the side of every second bus in London
+
+wordings:
+  - "Don't smoke as it will kill you"
+  - "Smoking is uncool"
+  - "Smoking will give you cancer"
+  - "Boys won't want to kiss you if you stink of cigarette smoke"
+  - "Smoking makes you slow"
+  - "Look at old people who smoke. They look really bad. If they were your age, they wouldn't start"

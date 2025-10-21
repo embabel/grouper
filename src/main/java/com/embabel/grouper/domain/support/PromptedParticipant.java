@@ -1,6 +1,7 @@
-package com.embabel.grouper.domain;
+package com.embabel.grouper.domain.support;
 
 import com.embabel.common.ai.model.LlmOptions;
+import com.embabel.grouper.domain.Model;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;

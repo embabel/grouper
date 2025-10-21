@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.function.Predicate;
 
 @ConfigurationProperties(prefix = "grouper")
-public record GrouperConfig(
+public record GrouperProperties(
         int maxConcurrency,
         int maxVariants,
         int maxIterations,

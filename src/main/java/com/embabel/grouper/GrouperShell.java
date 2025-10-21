@@ -3,45 +3,45 @@ package com.embabel.grouper;
 import com.embabel.agent.api.common.autonomy.AgentInvocation;
 import com.embabel.agent.core.AgentPlatform;
 import com.embabel.agent.core.Verbosity;
-import com.embabel.grouper.agent.GrouperConfig;
-import com.embabel.grouper.domain.InMemoryParticipantRepository;
+import com.embabel.grouper.agent.GrouperProperties;
+import com.embabel.grouper.domain.MessageVariantsRepository;
 import com.embabel.grouper.domain.Model;
+import com.embabel.grouper.domain.ParticipantRepository;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
+import org.springframework.shell.standard.ShellOption;
 
 import java.util.List;
 
 @ShellComponent
-record GrouperShell(AgentPlatform agentPlatform, GrouperConfig config) {
+record GrouperShell(
+        AgentPlatform agentPlatform,
+        ParticipantRepository participantRepository,
+        MessageVariantsRepository messageVariantsRepository,
+        GrouperProperties config) {
 
-    @ShellMethod("Run a focus group")
-    String focus() {
-        var participants = new InMemoryParticipantRepository().findAll();
+    @ShellMethod("Test a given message against a given group")
+    String focusGroup(
+            @ShellOption(help = "The id of the message", defaultValue = "smoking") String message,
+            @ShellOption(help = "The group to test again", defaultValue = "english_teen") String group) {
+        var participants = participantRepository.findByGroup(group);
+        var messageVariants = messageVariantsRepository.findByName(message);
+
+        if (participants.isEmpty()) {
+            return "Unable to resolve participants by group " + group;
+        }
+        if (messageVariants == null) {
+            return "Unable to find messaging for message " + message;
+        }
+
         var focusGroup = new Model.FocusGroup(participants);
+        var positioning = new Model.Positioning(List.of(messageVariants));
 
-        var positioning = new Model.Positioning(List.of(
-                new Model.MessageVariants(
-                        new Model.Message("nosmoke",
-                                "smoking is bad",
-                                "To deter the participant from wanting to smoke",
-                                """
-                                        A concise, memorable slogan for use in a national campaign aimed at British teenagers
-                                        Imagine it on the side of every second bus in London
-                                        """),
-                        "Don't smoke as it will kill you",
-                        "Smoking is uncool",
-                        "Smoking will give you cancer",
-                        "Boys won't want to kiss you if you stink of cigarette smoke",
-                        "Smoking makes you slow",
-                        "Look at old people who smoke. They look really bad. If they were your age, they wouldn't start"
-                )
-        ));
-
-        var best = AgentInvocation.builder(agentPlatform)
+        var bestScoringVariants = AgentInvocation.builder(agentPlatform)
                 .options(o -> o.verbosity(new Verbosity(true, false, false, false)))
                 .build(Model.BestScoringVariants.class)
                 .invoke(focusGroup, participants, positioning);
-        return best.toString();
+        return bestScoringVariants.toString();
     }
 
 }

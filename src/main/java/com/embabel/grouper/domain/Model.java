@@ -2,7 +2,7 @@ package com.embabel.grouper.domain;
 
 import com.embabel.common.ai.model.LlmOptions;
 import com.embabel.common.ai.prompt.PromptContributor;
-import com.embabel.grouper.agent.GrouperConfig;
+import com.embabel.grouper.agent.GrouperProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import io.vavr.collection.Vector;
@@ -57,7 +57,7 @@ public abstract class Model {
     }
 
     /**
-     * Variants of a particular message
+     * Conceptual Message although with multiple variants.
      *
      * @param message
      * @param expressions
@@ -176,10 +176,10 @@ public abstract class Model {
 
     public static class BestScoringVariants {
         private Vector<MessageVariantScore> bestVariants = Vector.empty();
-        private final GrouperConfig config;
+        private final GrouperProperties config;
         private Vector<String> findings = Vector.empty();
 
-        public BestScoringVariants(GrouperConfig config) {
+        public BestScoringVariants(GrouperProperties config) {
             this.config = config;
         }
 
@@ -188,7 +188,7 @@ public abstract class Model {
         }
 
         public void updateFrom(FocusGroupRun focusGroupRun,
-                               GrouperConfig config) {
+                               GrouperProperties config) {
             var newScores = Vector.ofAll(
                     focusGroupRun.positioning.messageVariants().stream()
                             .flatMap(mv -> mv.expressions().stream())

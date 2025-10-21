@@ -49,11 +49,14 @@ Run the shell script to start Embabel under Spring Shell:
 Then run the following command:
 
 ```
-focus
+focus-group --message smoking --group english_teen
 ```
 
-Edit the [GrouperShell](src/main/java/com/embabel/grouper/GrouperShell.java) class to change hard-coded values.
-You can implement [ParticipantRepository](src/main/java/com/embabel/grouper/domain/ParticipantRepository.java)
-to use a real database for participants, or change the hard-coded
-values. See [application.yml](src/main/resources/application.yml) for resources.
+Messaging files are loaded under `src/data/messages`. The default is `smoking.yml`.
+Participant files are loaded under `src/data/participants`. The `english_teen.yml` file shows the format. Use your own
+base name.
+
+These files show the required format.
+
+See [application.yml](src/main/resources/application.yml) for other configuration.
 

@@ -1,10 +1,8 @@
 package com.embabel.grouper.domain;
 
-import org.springframework.data.repository.Repository;
-
 import java.util.List;
 
-public interface ParticipantRepository extends Repository<Model.Participant, String> {
+public interface ParticipantRepository {
 
-    List<Model.Participant> findAll();
+    List<Model.Participant> findByGroup(String group);
 }

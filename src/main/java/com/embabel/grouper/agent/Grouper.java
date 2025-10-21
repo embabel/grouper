@@ -21,12 +21,12 @@ import java.util.function.Predicate;
 /**
  * Agent to simulate a focus group
  *
- * @param config          config
+ * @param properties      properties
  * @param fitnessFunction fitness function determining when we are satisfied
  */
 @Agent(description = "Simulate a focus group")
 record Grouper(
-        GrouperConfig config,
+        GrouperProperties properties,
         Predicate<FocusGroupRun> fitnessFunction
 ) {
 
@@ -37,7 +37,7 @@ record Grouper(
     private static final String DONE_CONDITION = "results_acceptable";
 
     Grouper {
-        logger.info("Config: {}", config);
+        logger.info("Config: {}", properties);
     }
 
     @Condition(name = RUN_FOCUS_GROUP_CONDITION)
@@ -50,7 +50,7 @@ record Grouper(
 
     @Action
     Model.BestScoringVariants initialize() {
-        return new Model.BestScoringVariants(config);
+        return new Model.BestScoringVariants(properties);
     }
 
     @Action(pre = {RUN_FOCUS_GROUP_CONDITION}, post = {DONE_CONDITION}, canRerun = true)
@@ -66,7 +66,7 @@ record Grouper(
         var specificReactions = new AtomicInteger(0);
         var results = context.parallelMap(
                 focusGroupRun.combinations,
-                config.maxConcurrency(),
+                properties.maxConcurrency(),
                 participantMessagePresentation -> {
                     var sp = presentMessageVariantToParticipants(
                             participantMessagePresentation,
@@ -80,7 +80,7 @@ record Grouper(
                 }
         );
         results.forEach(focusGroupRun::record);
-        bestScoringVariants.updateFrom(focusGroupRun, config);
+        bestScoringVariants.updateFrom(focusGroupRun, properties);
         return focusGroupRun;
     }
 
@@ -122,7 +122,7 @@ record Grouper(
 
     @Condition(name = DONE_CONDITION)
     boolean done(FocusGroupRun focusGroupRun, OperationContext context) {
-        return context.count(FocusGroupRun.class) >= config.maxIterations() || fitnessFunction.test(focusGroupRun);
+        return context.count(FocusGroupRun.class) >= properties.maxIterations() || fitnessFunction.test(focusGroupRun);
     }
 
     @Action(cost = 1.0, post = {DONE_CONDITION}, canRerun = true)
@@ -134,7 +134,7 @@ record Grouper(
         logger.info("Evolving positioning based on FocusGroupRun {}", focusGroupRun);
         // TODO Should handle > 1 message
         var messageVariants = focusGroupRun.positioning.messageVariants().getFirst();
-        var creativeControl = config.nextCreative()
+        var creativeControl = properties.nextCreative()
                 .promptRunner(ai)
                 .withPromptContributor(messageVariants.message())
                 .creating(CreativeControl.class)
@@ -157,8 +157,8 @@ record Grouper(
                         %s
                         """.formatted(
                         focusGroupRun.infoString(true, 1),
-                        config.findingsWordCount(),
-                        config.maxVariants(),
+                        properties.findingsWordCount(),
+                        properties.maxVariants(),
                         bestScoringVariants)
                 );
         logger.info("Creative input: {}", creativeControl);
