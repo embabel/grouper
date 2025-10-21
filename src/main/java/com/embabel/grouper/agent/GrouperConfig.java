@@ -16,6 +16,7 @@ public record GrouperConfig(
         int maxVariants,
         int maxIterations,
         double minMessageScore,
+        int findingsWordCount,
         List<Actor<RoleGoalBackstory>> creatives
 ) implements Predicate<FocusGroupRun> {
 

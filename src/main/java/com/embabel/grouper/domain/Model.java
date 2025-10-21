@@ -177,6 +177,7 @@ public abstract class Model {
     public static class BestScoringVariants {
         private Vector<MessageVariantScore> bestVariants = Vector.empty();
         private final GrouperConfig config;
+        private Vector<String> findings = Vector.empty();
 
         public BestScoringVariants(GrouperConfig config) {
             this.config = config;
@@ -186,7 +187,8 @@ public abstract class Model {
             return bestVariants.asJava();
         }
 
-        public void updateFrom(FocusGroupRun focusGroupRun, GrouperConfig config) {
+        public void updateFrom(FocusGroupRun focusGroupRun,
+                               GrouperConfig config) {
             var newScores = Vector.ofAll(
                     focusGroupRun.positioning.messageVariants().stream()
                             .flatMap(mv -> mv.expressions().stream())
@@ -202,13 +204,23 @@ public abstract class Model {
                     .take(config.maxVariants());
         }
 
+        public void addFinding(String finding) {
+            findings = findings.append(finding);
+        }
+
         @NotNull
         @Override
         public String toString() {
-            return bestVariants
+            var variants = bestVariants
                     .sorted(Comparator.comparingDouble(Model.MessageVariantScore::normalizedScore).reversed())
                     .map(mv -> "%.2f: %s".formatted(config.decisionScore(mv), mv.messageVariant().wording()))
                     .collect(Collectors.joining("\n"));
+            return """
+                    %s
+                    
+                    Findings:
+                    - %s
+                    """.formatted(variants, findings.collect(Collectors.joining("\n- ")));
 
         }
     }

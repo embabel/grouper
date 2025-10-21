@@ -131,16 +131,18 @@ record Grouper(
         logger.info("Evolving positioning based on FocusGroupRun {}", focusGroupRun);
         // TODO Should handle > 1 message
         var messageVariants = focusGroupRun.positioning.messageVariants().getFirst();
-        var newMessageWordings = config.nextCreative()
+        var creativeControl = config.nextCreative()
                 .promptRunner(ai)
                 .withPromptContributor(messageVariants.message())
-                .creating(NewMessageWordings.class)
+                .creating(CreativeControl.class)
                 .fromPrompt("""
                         Given the objectives, consider
                         the following feedback:
                         %s
                         
-                        Create new message wordings we could try.
+                        1. Summarize the feedback in no more than %d words.
+                        
+                        2. Create new message wordings we could try.
                         
                         Be creative. Try to break through!
                         
@@ -150,13 +152,15 @@ record Grouper(
                         %s
                         """.formatted(
                         focusGroupRun.infoString(true, 1),
+                        config.findingsWordCount(),
                         config.maxVariants(),
                         bestScoringVariants)
                 );
-        logger.info("New wordings: {}", newMessageWordings);
+        logger.info("Creative input: {}", creativeControl);
+        bestScoringVariants.addFinding(creativeControl.summary);
         var newMessageVariants = new Model.MessageVariants(
                 messageVariants.message(),
-                newMessageWordings.wordings().toArray(new String[0])
+                creativeControl.wordings().toArray(new String[0])
         );
 
         return new Model.Positioning(List.of(newMessageVariants));
@@ -171,11 +175,12 @@ record Grouper(
             OperationContext context) {
         return bestScoringVariants;
     }
+
+    private record CreativeControl(
+            String summary,
+            List<String> wordings
+    ) {
+    }
 }
 
 
-record NewMessageWordings(
-        List<String> wordings
-) {
-
-}

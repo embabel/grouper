@@ -42,3 +42,4 @@ grouper:
   max-variants: 10
   max-iterations: 10
   min-message-score: 0.9
+  findings-word-count: 60
