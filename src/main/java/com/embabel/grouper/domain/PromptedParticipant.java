@@ -11,7 +11,8 @@ import java.util.List;
 public record PromptedParticipant(
         String name,
         LlmOptions llm,
-        String identity
+        String identity,
+        @Override double populationPercentage
 ) implements Model.Participant {
 
     @Override
@@ -22,9 +23,10 @@ public record PromptedParticipant(
     public static List<PromptedParticipant> against(
             String name,
             String identity,
-            List<LlmOptions> llms
+            List<LlmOptions> llms,
+            double populationPercentage
     ) {
-        return llms.stream().map(llm -> new PromptedParticipant(name, llm, identity)).toList();
+        return llms.stream().map(llm -> new PromptedParticipant(name, llm, identity, populationPercentage)).toList();
     }
 
     @NotNull

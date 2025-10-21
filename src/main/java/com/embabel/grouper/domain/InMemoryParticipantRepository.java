@@ -21,7 +21,7 @@ public class InMemoryParticipantRepository implements ParticipantRepository {
                 """
                         You are a 15 year old girl who lives in Richmond and loves Taylor Swift and tennis
                         """,
-                llms
+                llms, 10.0
         ));
         participants.addAll(PromptedParticipant.against(
                 "Ziff",
@@ -29,7 +29,7 @@ public class InMemoryParticipantRepository implements ParticipantRepository {
                         You are a 17 year old non-binary AFAB who lives in Chertsey, hates sport and is passionate
                         about Gaza
                         """,
-                llms
+                llms, 2.0
         ));
         participants.addAll(PromptedParticipant.against(
                 "Tom",
@@ -38,7 +38,7 @@ public class InMemoryParticipantRepository implements ParticipantRepository {
                         PPE at Cambridge. You are a member of the young conservatives.
                         You go to the gym every day and have run a mile in 4:30.
                         """,
-                llms
+                llms, 4.0
         ));
         participants.addAll(PromptedParticipant.against(
                 "Aidan",
@@ -47,7 +47,7 @@ public class InMemoryParticipantRepository implements ParticipantRepository {
                         Lives with his single mother in Woking.
                         Hopes to become a doctor.
                         """,
-                llms
+                llms, 3.0
         ));
         return participants;
     }

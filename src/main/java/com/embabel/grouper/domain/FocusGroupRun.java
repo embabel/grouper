@@ -58,7 +58,7 @@ public class FocusGroupRun implements HasInfoString {
                 .flatMap(mv -> mv.expressions().stream())
                 .map(this::getAverageScoreForMessageVariant)
                 .filter(score -> score.count() > 0) // Only consider variants with reactions
-                .max((s1, s2) -> Double.compare(s1.averageScore(), s2.averageScore()))
+                .max((s1, s2) -> Double.compare(s1.normalizedScore(), s2.normalizedScore()))
                 .orElse(null);
     }
 
@@ -68,12 +68,27 @@ public class FocusGroupRun implements HasInfoString {
                 .toList();
 
         long count = reactions.size();
+
+        if (count == 0) {
+            return new Model.MessageVariantScore(messageVariant, 0.0, 0.0, 0);
+        }
+
         double average = reactions.stream()
                 .mapToDouble(r -> r.reaction().rating().score())
                 .average()
                 .orElse(0.0);
 
-        return new Model.MessageVariantScore(messageVariant, average, count);
+        // Calculate normalized (weighted) average
+        double totalWeight = reactions.stream()
+                .mapToDouble(r -> focusGroup.normalizedWeight(r.participantMessagePresentation().participant()))
+                .sum();
+
+        double normalizedAverage = reactions.stream()
+                .mapToDouble(r -> r.reaction().rating().score() *
+                                  focusGroup.normalizedWeight(r.participantMessagePresentation().participant()))
+                .sum() / totalWeight;
+
+        return new Model.MessageVariantScore(messageVariant, average, normalizedAverage, count);
     }
 
     public double getAverageScoreForParticipant(Model.Participant participant) {

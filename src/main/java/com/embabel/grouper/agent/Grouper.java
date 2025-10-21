@@ -46,7 +46,7 @@ record Grouper(
 
     @Action
     Model.BestScoringVariants initialize() {
-        return new Model.BestScoringVariants();
+        return new Model.BestScoringVariants(config);
     }
 
     @Action(pre = {"positioningIsLastEntry"}, post = {DONE_CONDITION}, canRerun = true)

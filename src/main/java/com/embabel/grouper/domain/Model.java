@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -92,6 +93,15 @@ public abstract class Model {
         String name();
 
         LlmOptions llm();
+
+        /**
+         * Raw population percentage this participant represents.
+         * Will be automatically normalized across all participants in the focus group.
+         * Default is 1.0 (equal weighting).
+         */
+        default double populationPercentage() {
+            return 1.0;
+        }
     }
 
     /**
@@ -102,6 +112,21 @@ public abstract class Model {
     public record FocusGroup(
             List<Participant> participants
     ) {
+        private Map<Participant, Double> normalizedWeights() {
+            double total = participants.stream()
+                    .mapToDouble(Participant::populationPercentage)
+                    .sum();
+            return Vector.ofAll(participants)
+                    .toMap(p -> p, p -> p.populationPercentage() / total)
+                    .toJavaMap();
+        }
+
+        /**
+         * Get the normalized weight for a participant (0.0 to 1.0, sum of all weights = 1.0)
+         */
+        public double normalizedWeight(Participant participant) {
+            return normalizedWeights().getOrDefault(participant, 0.0);
+        }
     }
 
     /**
@@ -144,12 +169,18 @@ public abstract class Model {
     public record MessageVariantScore(
             MessageVariant messageVariant,
             double averageScore,
+            double normalizedScore,
             long count
     ) {
     }
 
     public static class BestScoringVariants {
         private Vector<MessageVariantScore> bestVariants = Vector.empty();
+        private final GrouperConfig config;
+
+        public BestScoringVariants(GrouperConfig config) {
+            this.config = config;
+        }
 
         public List<Model.MessageVariantScore> bestVariants() {
             return bestVariants.asJava();
@@ -167,7 +198,7 @@ public abstract class Model {
             bestVariants = bestVariants
                     .appendAll(newScores)
                     .distinctBy(score -> score.messageVariant().wording().trim())
-                    .sorted(Comparator.comparingDouble(Model.MessageVariantScore::averageScore).reversed())
+                    .sorted(Comparator.comparingDouble(config::decisionScore).reversed())
                     .take(config.maxVariants());
         }
 
@@ -175,8 +206,8 @@ public abstract class Model {
         @Override
         public String toString() {
             return bestVariants
-                    .sorted(Comparator.comparingDouble(Model.MessageVariantScore::averageScore).reversed())
-                    .map(mv -> "%.2f: %s".formatted(mv.averageScore(), mv.messageVariant().wording()))
+                    .sorted(Comparator.comparingDouble(Model.MessageVariantScore::normalizedScore).reversed())
+                    .map(mv -> "%.2f: %s".formatted(config.decisionScore(mv), mv.messageVariant().wording()))
                     .collect(Collectors.joining("\n"));
 
         }

@@ -3,6 +3,7 @@ package com.embabel.grouper.agent;
 import com.embabel.agent.prompt.persona.Actor;
 import com.embabel.agent.prompt.persona.RoleGoalBackstory;
 import com.embabel.grouper.domain.FocusGroupRun;
+import com.embabel.grouper.domain.Model;
 import io.vavr.collection.Vector;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -21,7 +22,15 @@ public record GrouperConfig(
     @Override
     public boolean test(FocusGroupRun focusGroupRun) {
         // TODO don't have divisive messages
-        return focusGroupRun.isComplete() && focusGroupRun.getBestPerformingMessageVariant().averageScore() > minMessageScore;
+        return focusGroupRun.isComplete() && decisionScore(focusGroupRun.getBestPerformingMessageVariant()) > minMessageScore;
+    }
+
+    /**
+     * We mix the two so messages absolutely hated by a small proportion
+     * get penalized
+     */
+    public double decisionScore(Model.MessageVariantScore messageVariantScore) {
+        return (messageVariantScore.normalizedScore() * 5.0 + messageVariantScore.averageScore() * 1.1) / 6.1;
     }
 
     public Actor<RoleGoalBackstory> nextCreative() {

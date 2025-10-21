@@ -3,6 +3,7 @@ package com.embabel.grouper;
 import com.embabel.agent.api.common.autonomy.AgentInvocation;
 import com.embabel.agent.core.AgentPlatform;
 import com.embabel.agent.core.Verbosity;
+import com.embabel.grouper.agent.GrouperConfig;
 import com.embabel.grouper.domain.InMemoryParticipantRepository;
 import com.embabel.grouper.domain.Model;
 import org.springframework.shell.standard.ShellComponent;
@@ -11,7 +12,7 @@ import org.springframework.shell.standard.ShellMethod;
 import java.util.List;
 
 @ShellComponent
-record GrouperShell(AgentPlatform agentPlatform) {
+record GrouperShell(AgentPlatform agentPlatform, GrouperConfig config) {
 
     @ShellMethod("Run a focus group")
     String focus() {
