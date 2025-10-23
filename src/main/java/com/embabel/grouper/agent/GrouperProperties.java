@@ -1,5 +1,6 @@
 package com.embabel.grouper.agent;
 
+import com.embabel.agent.api.common.workflow.loop.UntilAcceptable;
 import com.embabel.agent.prompt.persona.Actor;
 import com.embabel.agent.prompt.persona.RoleGoalBackstory;
 import com.embabel.grouper.domain.FocusGroupRun;
@@ -20,7 +21,7 @@ public record GrouperProperties(
         boolean showPrompts,
         double maxCost,
         List<Actor<RoleGoalBackstory>> creatives
-) implements Predicate<FocusGroupRun> {
+) implements Predicate<FocusGroupRun>, UntilAcceptable.Properties {
 
     @Override
     public boolean test(FocusGroupRun focusGroupRun) {

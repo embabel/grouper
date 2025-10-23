@@ -1,11 +1,9 @@
 package com.embabel.grouper.agent;
 
-import com.embabel.agent.api.annotation.AchievesGoal;
-import com.embabel.agent.api.annotation.Action;
 import com.embabel.agent.api.annotation.Agent;
-import com.embabel.agent.api.annotation.Condition;
 import com.embabel.agent.api.common.Ai;
 import com.embabel.agent.api.common.OperationContext;
+import com.embabel.agent.api.common.workflow.loop.UntilAcceptable;
 import com.embabel.agent.event.ProgressUpdateEvent;
 import com.embabel.common.util.StringTrimmingUtilsKt;
 import com.embabel.grouper.domain.FocusGroupRun;
@@ -18,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
+
 /**
  * Agent to simulate a focus group
  *
@@ -26,40 +25,39 @@ import java.util.function.Predicate;
  */
 @Agent(description = "Simulate a focus group")
 record Grouper(
-        GrouperProperties properties,
-        Predicate<FocusGroupRun> fitnessFunction
-) {
+        @Override GrouperProperties properties,
+        @Override Predicate<FocusGroupRun> fitnessFunction
+) implements UntilAcceptable<Model.Positioning, FocusGroupRun, Model.BestScoringVariants> {
 
     private static final Logger logger = LoggerFactory.getLogger(Grouper.class);
-
-    private static final String RUN_FOCUS_GROUP_CONDITION = "run_focus_group";
-
-    private static final String DONE_CONDITION = "results_acceptable";
 
     Grouper {
         logger.info("Config: {}", properties);
     }
 
-    @Condition(name = RUN_FOCUS_GROUP_CONDITION)
-    boolean shouldRunFocusGroup(OperationContext context) {
-        var last = context.lastResult();
-        // We run if we have new Positioning or are just getting started,
-        // having run the init method
-        return last instanceof Model.Positioning || last instanceof Model.BestScoringVariants;
+    @Override
+    public Class<FocusGroupRun> repeatedClass() {
+        return FocusGroupRun.class;
     }
 
-    @Action
-    Model.BestScoringVariants initialize() {
+    @Override
+    public Class<Model.Positioning> testClass() {
+        return Model.Positioning.class;
+    }
+
+    @Override
+    public Model.BestScoringVariants initialize() {
         return new Model.BestScoringVariants(properties);
     }
 
-    @Action(pre = {RUN_FOCUS_GROUP_CONDITION}, post = {DONE_CONDITION}, canRerun = true)
-    FocusGroupRun runFocusGroup(
-            Model.FocusGroup focusGroup,
+    @Override
+    public FocusGroupRun runIteration(
             Model.Positioning positioning,
             Model.BestScoringVariants bestScoringVariants,
-            OperationContext context
-    ) {
+            OperationContext context) {
+        // TODO this is a bit nasty
+        var focusGroup = context.last(Model.FocusGroup.class);
+
         var focusGroupRun = new FocusGroupRun(focusGroup, positioning);
         logger.info("Will try {} combinations", focusGroupRun.combinations.size());
 
@@ -124,17 +122,9 @@ record Grouper(
         );
     }
 
-    @Condition(name = DONE_CONDITION)
-    boolean done(FocusGroupRun focusGroupRun, OperationContext context) {
-        return context.count(FocusGroupRun.class) >= properties.maxIterations() || fitnessFunction.test(focusGroupRun);
-    }
-
-    @Action(cost = 1.0, post = {DONE_CONDITION}, canRerun = true)
-    Model.Positioning evolvePositioning(
-            FocusGroupRun focusGroupRun,
-            Model.BestScoringVariants bestScoringVariants,
-            Ai ai
-    ) {
+    @Override
+    public Model.Positioning evolve(FocusGroupRun focusGroupRun,
+                                    Model.BestScoringVariants results, Ai ai) {
         logger.debug("Evolving positioning based on FocusGroupRun {}", focusGroupRun);
         // TODO Should handle > 1 message
         var messageVariants = focusGroupRun.positioning.messageVariants().getFirst();
@@ -163,24 +153,17 @@ record Grouper(
                         focusGroupRun.infoString(true, 1),
                         properties.findingsWordCount(),
                         properties.maxVariants(),
-                        bestScoringVariants)
+                        results)
                 );
-        logger.info("Best scoring variants so far:\n{}", bestScoringVariants);
+        logger.info("Best scoring variants so far:\n{}", results);
         logger.info("Creative input: {}", creativeControl);
-        bestScoringVariants.addFinding(creativeControl.summary);
+        results.addFinding(creativeControl.summary);
         var newMessageVariants = new Model.MessageVariants(
                 messageVariants.message(),
                 creativeControl.wordings().toArray(new String[0])
         );
 
         return new Model.Positioning(List.of(newMessageVariants));
-    }
-
-    @Action(pre = {DONE_CONDITION})
-    @AchievesGoal(description = "Focus group has considered positioning")
-    Model.BestScoringVariants results(
-            Model.BestScoringVariants bestScoringVariants) {
-        return bestScoringVariants;
     }
 
     private record CreativeControl(
